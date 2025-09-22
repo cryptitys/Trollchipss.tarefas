@@ -46,36 +46,20 @@ def auth():
     try:
         data = request.get_json(force=True)
         ra = data.get("ra")
-        password = data.get("password")
-        if not ra or not password:
-            return jsonify({"success": False, "message": "ra e password são obrigatórios"}), 400
-
-        login_url = f"{API_BASE}/registration/edusp"
-
-        # alguns endpoints exigem form-data, não JSON
-        payload = {
-            "username": ra,
-            "password": password
-        }
-
-        headers = default_headers()
-        headers["Content-Type"] = "application/x-www-form-urlencoded"
-
-        resp = requests.post(login_url, data=payload, headers=headers, timeout=20)
-
-        body = resp.json()
-
-        token = body.get("auth_token") or body.get("token") or body.get("data", {}).get("token")
-        nick = body.get("nick") or body.get("user", {}).get("nick")
-
-        if not token:
-            return jsonify({"success": False, "message": "Login inválido", "raw": body}), 401
-
-        return jsonify({"success": True, "auth_token": token, "nick": nick})
-
-    except requests.HTTPError as e:
-        return jsonify({"success": False, "message": f"HTTP {e.response.status_code}", "body": e.response.text}), 500
+        senha = data.get("password")
+        if not ra or not senha:
+            return jsonify({"success": False, "message": "RA e senha obrigatórios"}), 400
+        payload = {"realm": "edusp", "platform": "webclient", "id": ra, "password": senha}
+        r = requests.post(f"{API_BASE_URL}/registration/edusp", headers=default_headers(), json=payload, timeout=15)
+        if r.status_code != 200:
+            logging.warning("auth failed: %s %s", r.status_code, r.text[:300])
+            return jsonify({"success": False, "message": "Falha no login", "detail": r.text}), r.status_code
+        j = r.json()
+        logging.info("DEBUG /auth login OK: ra=%s nick=%s", ra, j.get("nick"))
+        # return both shapes for compatibility
+        return jsonify({"success": True, "user_info": {"auth_token": j.get("auth_token"), "nick": j.get("nick")}, "auth_token": j.get("auth_token"), "nick": j.get("nick")})
     except Exception as e:
+        logging.exception("auth error")
         return jsonify({"success": False, "message": str(e)}), 500
 # ------------------ TASKS ------------------ #
 def fetch_rooms(auth_token):
