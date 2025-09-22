@@ -44,22 +44,42 @@ def auth():
     retorna { success, auth_token, nick }
     """
     try:
+    try:
         data = request.get_json(force=True)
         ra = data.get("ra")
-        senha = data.get("password")
-        if not ra or not senha:
-            return jsonify({"success": False, "message": "RA e senha obrigatórios"}), 400
-        payload = {"realm": "edusp", "platform": "webclient", "id": ra, "password": senha}
-        r = requests.post(f"{API_BASE_URL}/registration/edusp", headers=default_headers(), json=payload, timeout=15)
-        if r.status_code != 200:
-            logging.warning("auth failed: %s %s", r.status_code, r.text[:300])
-            return jsonify({"success": False, "message": "Falha no login", "detail": r.text}), r.status_code
-        j = r.json()
-        logging.info("DEBUG /auth login OK: ra=%s nick=%s", ra, j.get("nick"))
-        # return both shapes for compatibility
-        return jsonify({"success": True, "user_info": {"auth_token": j.get("auth_token"), "nick": j.get("nick")}, "auth_token": j.get("auth_token"), "nick": j.get("nick")})
+        password = data.get("password")
+
+        if not ra or not password:
+            return jsonify({"success": False, "message": "ra e password são obrigatórios"}), 400
+
+        login_url = f"{API_BASE}/registration/edusp"
+        payload = {"login": ra, "password": password}
+
+        resp = requests.post(login_url, json=payload, headers=default_headers())
+        # não lançar exceção automaticamente para poder tratar 4xx
+        if resp.status_code != 200:
+            return jsonify({
+                "success": False,
+                "message": f"Erro de login externo: {resp.status_code}",
+                "body": resp.text
+            }), resp.status_code
+
+        body = resp.json()
+
+        token = body.get("auth_token") or (body.get("data") and body["data"].get("token")) or body.get("token")
+        nick = body.get("nick") or (body.get("data") and body["data"].get("nick")) or body.get("user", {}).get("nick", "")
+
+        if not token:
+            logging.warning("Login retornou sem token: %s", body)
+            return jsonify({"success": False, "message": "Autenticação falhou", "raw": body}), 401
+
+        return jsonify({"success": True, "auth_token": token, "nick": nick})
+
+    except requests.RequestException as e:
+        logging.exception("Erro HTTP ao chamar API externa")
+        return jsonify({"success": False, "message": "Erro na API externa", "detail": str(e)}), 502
     except Exception as e:
-        logging.exception("auth error")
+        logging.exception("Erro interno em /auth")
         return jsonify({"success": False, "message": str(e)}), 500
 # ------------------ TASKS ------------------ #
 def fetch_rooms(auth_token):
