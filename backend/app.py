@@ -51,31 +51,32 @@ def auth():
             return jsonify({"success": False, "message": "ra e password são obrigatórios"}), 400
 
         login_url = f"{API_BASE}/registration/edusp"
-        payload = {"login": ra, "password": password}
 
-        resp = requests.post(login_url, json=payload, headers=default_headers())
-        resp.raise_for_status()
+        # alguns endpoints exigem form-data, não JSON
+        payload = {
+            "username": ra,
+            "password": password
+        }
+
+        headers = default_headers()
+        headers["Content-Type"] = "application/x-www-form-urlencoded"
+
+        resp = requests.post(login_url, data=payload, headers=headers, timeout=20)
+
         body = resp.json()
 
-        # extração do token/nick - adaptável conforme retorno real
-        # assumimos algo como body["data"]["token"] ou body["auth_token"]
-        token = body.get("auth_token") or (body.get("data") and body["data"].get("token")) or body.get("token")
-        nick = body.get("nick") or (body.get("data") and body["data"].get("nick")) or body.get("user", {}).get("nick", "")
+        token = body.get("auth_token") or body.get("token") or body.get("data", {}).get("token")
+        nick = body.get("nick") or body.get("user", {}).get("nick")
 
         if not token:
-            # retorna todo body para ajudar debug
-            logging.warning("Login retornou sem token: %s", body)
-            return jsonify({"success": False, "message": "Autenticação falhou", "raw": body}), 401
+            return jsonify({"success": False, "message": "Login inválido", "raw": body}), 401
 
         return jsonify({"success": True, "auth_token": token, "nick": nick})
 
     except requests.HTTPError as e:
-        logging.exception("HTTP error during auth")
-        return jsonify({"success": False, "message": f"HTTP error: {e.response.status_code}", "body": e.response.text}), 500
+        return jsonify({"success": False, "message": f"HTTP {e.response.status_code}", "body": e.response.text}), 500
     except Exception as e:
-        logging.exception("Erro em /auth")
         return jsonify({"success": False, "message": str(e)}), 500
-
 # ------------------ TASKS ------------------ #
 def fetch_rooms(auth_token):
     url = f"{API_BASE}/room/user?list_all=true&with_cards=true"
