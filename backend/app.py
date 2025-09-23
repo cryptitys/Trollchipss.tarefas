@@ -44,7 +44,6 @@ def auth():
     retorna { success, auth_token, nick }
     """
     try:
-    try:
         data = request.get_json(force=True)
         ra = data.get("ra")
         password = data.get("password")
