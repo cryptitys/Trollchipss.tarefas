@@ -140,8 +140,8 @@ def auth():
     except Exception as e:
         logging.exception("auth error")
         return jsonify({"success": False, "message": str(e)}), 500
+
 # ---------------------------- TASKS -------------------------------------------------------
-# ------------------ TASKS ------------------ #
 @app.route("/tasks", methods=["POST"])
 def tasks():
     data = request.get_json()
@@ -221,7 +221,7 @@ def tasks():
 
     except Exception as e:
         print("DEBUG /tasks: erro ->", str(e))
-       return jsonify({"success": False, "message": f"Erro ao buscar tarefas: {str(e)}"}), 500
+        return jsonify({"success": False, "message": f"Erro ao buscar tarefas: {str(e)}"}), 500
 
 @app.route("/tasks/expired", methods=["POST"])
 def tasks_expired():
@@ -261,7 +261,8 @@ def complete_route():
         with ThreadPoolExecutor(max_workers=max_workers) as ex:
             futures = [ex.submit(process_one_task, token, t, time_min, time_max, is_draft) for t in tasks]
             for f in as_completed(futures):
-                try: results.append(f.result())
+                try:
+                    results.append(f.result())
                 except Exception as e:
                     logging.exception("thread error")
                     results.append({"success": False, "message": str(e)})
