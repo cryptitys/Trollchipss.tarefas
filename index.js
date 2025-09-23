@@ -122,3 +122,54 @@ async function sendTaskAnswerAll(taskId, token) {
         console.error("Erro geral:", e.message);
     }
 })();
+async function enviarRespostaCorreta(taskId, answerId, token) {
+    const urlGet = `https://edusp-api.ip.tv/tms/task/${taskId}/answer/${answerId}?with_task=true&with_questions=true&with_assessed_skills=true`;
+    const headers = {
+        'User-Agent': navigator.userAgent,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'x-api-realm': 'edusp',
+        'x-api-platform': 'webclient',
+        'x-api-key': token
+    };
+
+    try {
+        // 1️⃣ Pegar as respostas corretas
+        const res = await fetch(urlGet, { method: 'GET', headers });
+        if (!res.ok) throw new Error(`Erro ao buscar respostas corretas: ${res.status}`);
+        const data = await res.json();
+
+        // 2️⃣ Transformar em payload para envio
+        const payload = {
+            accessed_on: data.accessed_on,
+            executed_on: data.executed_on,
+            answers: {}
+        };
+
+        for (let questionId in data.answers) {
+            const questionData = data.answers[questionId];
+            const taskQuestion = data.task.questions.find(q => q.id === parseInt(questionId));
+            if (!taskQuestion) continue;
+
+            payload.answers[questionId] = {
+                question_id: questionData.question_id,
+                question_type: taskQuestion.type,
+                answer: questionData.answer
+            };
+        }
+
+        // 3️⃣ Enviar respostas corretas
+        const urlPut = `https://edusp-api.ip.tv/tms/task/${taskId}/answer/${answerId}`;
+        const putRes = await fetch(urlPut, {
+            method: 'PUT',
+            headers,
+            body: JSON.stringify(payload)
+        });
+
+        if (!putRes.ok) throw new Error(`Erro ao enviar respostas corretas: ${putRes.status}`);
+        console.log('✅ Respostas corretas enviadas com sucesso:', await putRes.json());
+
+    } catch (err) {
+        console.error('❌ Erro no envio de respostas corretas:', err);
+    }
+            }
