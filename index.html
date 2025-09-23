@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Trollchipss • Tarefas</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    body{margin:0;font-family:'Inter',sans-serif;background:#0b1220;color:#e6eef8;display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px}
+    .panel{width:100%;max-width:960px;background:#0f1724;padding:24px;border-radius:14px;box-shadow:0 8px 20px rgba(0,0,0,0.5)}
+    h1{margin:0 0 16px;font-size:20px;color:#2f7be2}
+    label{display:block;margin-top:12px;font-size:13px;color:#95a0b8}
+    input[type=text],input[type=password]{width:100%;padding:10px;border-radius:8px;border:none;background:rgba(255,255,255,0.08);color:#fff}
+    .buttons{margin-top:16px;display:flex;gap:12px}
+    .btn{flex:1;padding:10px 14px;border:none;border-radius:8px;cursor:pointer;font-weight:600}
+    .btn.primary{background:linear-gradient(90deg,#2f7be2,#3da5ff);color:#fff}
+    .btn.secondary{background:#1a2235;color:#e6eef8}
+    #taskSelectionModal{position:fixed;inset:0;background:rgba(0,0,0,0.6);display:none;align-items:center;justify-content:center;z-index:9999}
+    .modal-content{background:#10182c;padding:20px;border-radius:12px;width:90%;max-width:700px;max-height:90vh;overflow:auto}
+    .task-list-item{padding:8px;border-bottom:1px solid rgba(255,255,255,0.05);display:flex;align-items:center;gap:8px}
+    .task-list-item label{flex:1}
+    .controls{margin-top:12px;display:flex;gap:10px;flex-wrap:wrap}
+    .toast-container{position:fixed;top:20px;right:20px;display:flex;flex-direction:column;gap:10px;z-index:99999}
+    .toast{background:#1e293b;padding:10px 14px;border-radius:8px;font-size:14px;opacity:0;transform:translateX(100%);transition:all .3s}
+    .toast.show{opacity:1;transform:translateX(0)}
+  </style>
+</head>
+<body>
+  <div class="panel">
+    <h1>Trollchipss • Tarefas</h1>
+    <label for="ra">RA</label>
+    <input id="ra" type="text" placeholder="Digite seu RA"/>
+    <label for="senha">Senha</label>
+    <input id="senha" type="password" placeholder="Digite sua senha"/>
+    <div class="buttons">
+      <button class="btn primary" id="btnPending">Lições Pendentes</button>
+      <button class="btn secondary" id="btnExpired">Lições Expiradas</button>
+    </div>
+  </div>
+
+  <!-- Modal -->
+  <div id="taskSelectionModal">
+    <div class="modal-content">
+      <h2 id="taskSelectionModalTitle">Lições</h2>
+      <div id="taskListContainer"></div>
+      <div class="controls">
+        <label><input type="checkbox" id="selectAllTasksCheckbox"/> Selecionar todas</label>
+        <input id="modalMinTime" type="number" value="1" style="width:80px"/> min
+        <input id="modalMaxTime" type="number" value="3" style="width:80px"/> max
+        <button class="btn primary" id="startSelectedTasksBtn">Processar selecionadas</button>
+        <button class="btn secondary" id="startAllTasksBtn">Processar todas</button>
+      </div>
+      <div style="margin-top:12px;text-align:right">
+        <button class="btn secondary" id="closeTaskSelectionModalBtn">Fechar</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast-container" id="notificationsContainer"></div>
+
+<script>
+const API_URL = "https://SEU-BACKEND.onrender.com"; // 👈 troque pelo Render
+
+let globalAuthToken=null, globalNick=null, currentFetchedTasks=[];
+
+// Funções auxiliares
+function showToast(msg){
+  const c=document.getElementById("notificationsContainer");
+  const el=document.createElement("div");
+  el.className="toast"; el.textContent=msg;
+  c.appendChild(el);
+  setTimeout(()=>el.classList.add("show"),10);
+  setTimeout(()=>{el.classList.remove("show");setTimeout(()=>el.remove(),300)},3000);
+}
+
+async function callBackend(endpoint,payload){
+  const res=await fetch(API_URL+"/"+endpoint,{
+    method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify(payload)});
+  return await res.json();
+}
+
+async function loginAndFetchTasks(filter){
+  const ra=document.getElementById("ra").value.trim();
+  const senha=document.getElementById("senha").value.trim();
+  if(!ra||!senha){showToast("Preencha RA e senha");return;}
+
+  showToast("Fazendo login...");
+  const loginRes=await callBackend("auth",{ra,password:senha});
+  if(!loginRes.success){showToast("Falha login");return;}
+  globalAuthToken=loginRes.auth_token; globalNick=loginRes.nick;
+  showToast("Login OK");
+
+  const tasksRes=await callBackend("tasks",{auth_token:globalAuthToken,filter:filter,nick:globalNick});
+  if(!tasksRes.success){showToast("Erro carregando tarefas");return;}
+  currentFetchedTasks=tasksRes.tasks||[];
+  displayTasksInSelectionModal(currentFetchedTasks,filter);
+}
+
+function displayTasksInSelectionModal(tasks,filterType){
+  const container=document.getElementById("taskListContainer");
+  container.innerHTML="";
+  if(tasks.length===0){
+    container.innerHTML="<p>Nenhuma tarefa encontrada.</p>";
+  }else{
+    tasks.forEach(task=>{
+      const item=document.createElement("div");
+      item.className="task-list-item";
+      item.innerHTML=`<input type="checkbox" value="${task.id}" id="task-${task.id}">
+                      <label for="task-${task.id}">${task.title||"Sem título"}
+                      <span style="font-size:12px;color:#95a0b8">(${task.answer_status||'pendente'})</span></label>`;
+      container.appendChild(item);
+    });
+  }
+  document.getElementById("taskSelectionModalTitle").textContent=
+    filterType==="pending"?"Lições Pendentes":"Lições Expiradas";
+  document.getElementById("taskSelectionModal").style.display="flex";
+}
+
+function getSelectedTasks(){
+  const sel=[];document.querySelectorAll("#taskListContainer input[type=checkbox]:checked")
+    .forEach(cb=>{const t=currentFetchedTasks.find(x=>String(x.id)===cb.value);if(t)sel.push(t)});
+  return sel;
+}
+
+async function processTasks(tasks){
+  const min=document.getElementById("modalMinTime").value||1;
+  const max=document.getElementById("modalMaxTime").value||3;
+  const res=await callBackend("complete",{auth_token:globalAuthToken,tasks:tasks,time_min:min,time_max:max,is_draft:false});
+  if(res.success){showToast(res.message);} else{showToast("Erro processando");}
+}
+
+// Eventos
+document.getElementById("btnPending").onclick=()=>loginAndFetchTasks("pending");
+document.getElementById("btnExpired").onclick=()=>loginAndFetchTasks("expired");
+document.getElementById("selectAllTasksCheckbox").onchange=function(){
+  document.querySelectorAll("#taskListContainer input[type=checkbox]").forEach(cb=>cb.checked=this.checked);
+};
+document.getElementById("startSelectedTasksBtn").onclick=()=>processTasks(getSelectedTasks());
+document.getElementById("startAllTasksBtn").onclick=()=>processTasks(currentFetchedTasks);
+document.getElementById("closeTaskSelectionModalBtn").onclick=()=>{document.getElementById("taskSelectionModal").style.display="none";}
+</script>
+</body>
+          </html>
