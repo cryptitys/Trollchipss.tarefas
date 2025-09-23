@@ -1,274 +1,244 @@
 # app.py
-import os
-import logging
-from datetime import datetime, timezone
-from concurrent.futures import ThreadPoolExecutor, as_completed
-
-import requests
+import os, random, time, logging, requests
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from datetime import datetime, timezone
+import re
 
-# Config
-API_BASE = "https://edusp-api.ip.tv"
-DEFAULT_HEADERS = {
-    "x-api-platform": "webclient",
-    "x-api-realm": "edusp",
-    "Accept": "application/json",
-    "Content-Type": "application/json"
-}
-
-# Logging
-logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
-
+# -------------------- CONFIG --------------------
 app = Flask(__name__)
-CORS(app)
+CORS(app, resources={r"/*": {"origins": "*"}})
+logging.basicConfig(level=logging.INFO)
+
+API_BASE_URL = "https://edusp-api.ip.tv"
+CLIENT_ORIGIN = os.environ.get("CLIENT_ORIGIN", "https://servidorteste.vercel.app/")
+USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"
+
+def default_headers(extra=None):
+    headers = {
+        "Accept": "application/json",
+        "Content-Type": "application/json",
+        "x-api-realm": "edusp",
+        "x-api-platform": "webclient",
+        "User-Agent": USER_AGENT,
+        "Origin": CLIENT_ORIGIN,
+        "Referer": CLIENT_ORIGIN + "/",
+    }
+    if extra:
+        headers.update(extra)
+    return headers
 
 def now_iso():
     return datetime.now(timezone.utc).isoformat()
 
-def default_headers(extra=None):
-    h = DEFAULT_HEADERS.copy()
-    if extra:
-        h.update(extra)
-    return h
+# -------------------- HELPERS --------------------
+def remove_html_tags(s):
+    return re.sub('<[^<]+?>', '', s or '').strip()
 
-# ------------------ AUTH ------------------ #
+def transform_json_for_submission(task_json):
+    if not task_json or "questions" not in task_json:
+        raise ValueError("Estrutura inválida")
+    novo = {"accessed_on": task_json.get("accessed_on", now_iso()),
+            "executed_on": task_json.get("executed_on", now_iso()),
+            "answers": {}}
+    for q in task_json.get("questions", []):
+        qid = q.get("id")
+        qtype = q.get("type")
+        payload = {"question_id": qid, "question_type": qtype, "answer": None}
+        try:
+            opts = q.get("options", {})
+            if qtype == "order-sentences":
+                if isinstance(opts, dict) and opts.get("sentences"):
+                    payload["answer"] = [s.get("value") for s in opts["sentences"]]
+            elif qtype == "fill-words":
+                phrase = opts.get("phrase", [])
+                payload["answer"] = [item.get("value") for idx,item in enumerate(phrase) if idx %2==1] if phrase else []
+            elif qtype == "text_ai":
+                payload["answer"] = {"0": remove_html_tags(q.get("comment") or "")}
+            elif qtype == "fill-letters":
+                if "answer" in opts:
+                    payload["answer"] = opts.get("answer")
+            elif qtype == "cloud":
+                if opts.get("ids"):
+                    payload["answer"] = opts.get("ids")
+            elif qtype == "multiple_choice":
+                if isinstance(opts, list):
+                    correct = [o for o in opts if o.get("correct")]
+                    if correct:
+                        payload["answer"] = {str(correct[0].get("id")): True}
+                    elif opts:
+                        payload["answer"] = {str(opts[0].get("id")): True}
+                    else:
+                        payload["answer"] = {}
+                else:
+                    payload["answer"] = {}
+            else:
+                if isinstance(opts, dict):
+                    payload["answer"] = {k: (v.get("answer") if isinstance(v, dict) else False) for k,v in opts.items()}
+                else:
+                    payload["answer"] = {}
+        except Exception as e:
+            logging.exception("Erro processando questão %s: %s", qid, e)
+            payload["answer"] = {}
+        novo["answers"][str(qid)] = payload
+    return novo
+
+def fetch_rooms(token):
+    r = requests.get(f"{API_BASE_URL}/room/user?list_all=true&with_cards=true",
+                     headers=default_headers({"x-api-key": token}), timeout=15)
+    r.raise_for_status()
+    return r.json()
+
+def process_one_task(token, task_obj, time_min=1, time_max=3, is_draft=False):
+    try:
+        task_id = task_obj.get("id")
+        if not task_id:
+            return {"success": False, "message": "task sem id", "task_id": None}
+        r = requests.get(f"{API_BASE_URL}/tms/task/{task_id}",
+                         headers=default_headers({"x-api-key": token}), timeout=15)
+        r.raise_for_status()
+        task_info = r.json()
+        submission_payload = transform_json_for_submission(task_info)
+
+        # simula tempo de execução
+        sec_min = max(1, int(time_min)) * 60
+        sec_max = max(1, int(time_max)) * 60
+        processing_time = random.randint(sec_min, sec_max)
+        logging.info("PROCESS task %s sleep %s sec", task_id, processing_time)
+        time.sleep(processing_time)
+
+        submit_url = f"{API_BASE_URL}/tms/task/{task_id}/answer"
+        resp = requests.post(submit_url, headers=default_headers({"x-api-key": token}),
+                             json=submission_payload, timeout=30)
+        resp.raise_for_status()
+        return {"success": True, "task_id": task_id, "result": resp.json()}
+    except requests.HTTPError as he:
+        logging.exception("HTTP error processing task %s", task_id)
+        return {"success": False, "message": f"HTTP error: {he}", "task_id": task_id}
+    except Exception as e:
+        logging.exception("Error processing task %s", task_id)
+        return {"success": False, "message": str(e), "task_id": task_id}
+
+# -------------------- ROUTES --------------------
 @app.route("/auth", methods=["POST"])
 def auth():
     try:
         data = request.get_json(force=True)
         ra = data.get("ra")
-        password = data.get("password")
-        if not ra or not password:
-            return jsonify({"success": False, "message": "ra e password são obrigatórios"}), 400
-
-        login_url = f"{API_BASE}/registration/edusp"
-        payloads = [
-            {"login": ra, "password": password},
-            {"ra": ra, "password": password},
-            {"username": ra, "password": password}
-        ]
-        headers = default_headers()
-
-        for p in payloads:
-            try:
-                resp = requests.post(login_url, json=p, headers=headers, timeout=15)
-                if resp.status_code == 200:
-                    body = resp.json()
-                    token = body.get("auth_token") or (body.get("data") and body["data"].get("token"))
-                    nick = body.get("nick") or (body.get("data") and body["data"].get("nick", ""))
-                    if token:
-                        return jsonify({"success": True, "auth_token": token, "nick": nick, "debug_payload": p})
-            except Exception as e_inner:
-                logging.warning("Erro payload %s: %s", p, e_inner)
-
-        return jsonify({"success": False, "message": "Todos formatos falharam"}), 400
+        senha = data.get("password")
+        if not ra or not senha:
+            return jsonify({"success": False, "message": "RA e senha obrigatórios"}), 400
+        payload = {"realm": "edusp", "platform": "webclient", "id": ra, "password": senha}
+        r = requests.post(f"{API_BASE_URL}/registration/edusp", headers=default_headers(), json=payload, timeout=15)
+        if r.status_code != 200:
+            logging.warning("auth failed: %s %s", r.status_code, r.text[:300])
+            return jsonify({"success": False, "message": "Falha no login", "detail": r.text}), r.status_code
+        j = r.json()
+        logging.info("DEBUG /auth login OK: ra=%s nick=%s", ra, j.get("nick"))
+        return jsonify({"success": True, "auth_token": j.get("auth_token"), "nick": j.get("nick")})
     except Exception as e:
-        logging.exception("Erro /auth")
+        logging.exception("auth error")
         return jsonify({"success": False, "message": str(e)}), 500
-
-# ------------------ TASKS ------------------ #
-def fetch_rooms(auth_token):
-    url = f"{API_BASE}/room/user?list_all=true&with_cards=true"
-    headers = default_headers({"x-api-key": auth_token})
-    r = requests.get(url, headers=headers, timeout=20)
-    r.raise_for_status()
-    return r.json()
-
-def fetch_tasks_for_room(auth_token, publication_target=None, filter_expired=True):
-    params = {
-        "expired_only": "false",
-        "limit": 200,
-        "offset": 0,
-        "filter_expired": "true" if filter_expired else "false",
-        "is_exam": "false",
-        "with_answer": "true",
-        "is_essay": "false",
-        "with_apply_moment": "true"
-    }
-    if publication_target:
-        params["publication_target"] = publication_target
-
-    url = f"{API_BASE}/tms/task/todo"
-    headers = default_headers({"x-api-key": auth_token})
-    r = requests.get(url, headers=headers, params=params, timeout=25)
-    r.raise_for_status()
-    return r.json()
 
 @app.route("/tasks", methods=["POST"])
 def tasks():
     try:
         data = request.get_json(force=True)
         token = data.get("auth_token")
-        filter_type = data.get("filter", "pending")
+        task_filter = data.get("filter", "pending")
         if not token:
-            return jsonify({"success": False, "message": "auth_token obrigatório"}), 400
+            return jsonify({"success": False, "message": "Token é obrigatório"}), 400
 
-        filter_expired = (filter_type == "expired")
-        rooms_resp = fetch_rooms(token)
+        rooms = fetch_rooms(token)
+        targets = [str(r.get("id")) for r in rooms.get("rooms", []) if r.get("id")]
 
-        rooms = []
-        if isinstance(rooms_resp, dict):
-            rooms = rooms_resp.get("data") or rooms_resp.get("rooms") or []
-            if isinstance(rooms, dict) and "rooms" in rooms:
-                rooms = rooms["rooms"]
-        elif isinstance(rooms_resp, list):
-            rooms = rooms_resp
-
-        tasks_accum = []
-        if rooms:
-            for r in rooms:
-                pub_target = r.get("publication_target") or r.get("id") or r.get("room_id")
-                try:
-                    t_resp = fetch_tasks_for_room(token, publication_target=pub_target, filter_expired=filter_expired)
-                    items = t_resp.get("data") if isinstance(t_resp, dict) else t_resp
-                    if items:
-                        for it in items:
-                            if isinstance(it, dict):
-                                it["token"] = token
-                                it["room"] = pub_target
-                        tasks_accum.extend(items)
-                except Exception as e:
-                    logging.warning("Falha tasks room %s: %s", pub_target, e)
+        tasks_found = []
+        base_params = {"limit":100,"offset":0,"is_exam":"false","with_answer":"true",
+                       "is_essay":"false","with_apply_moment":"true"}
+        if task_filter=="expired":
+            base_params.update({"expired_only":"true","filter_expired":"false"})
         else:
-            t_resp = fetch_tasks_for_room(token, publication_target=None, filter_expired=filter_expired)
-            items = t_resp.get("data") if isinstance(t_resp, dict) else t_resp
-            if items:
-                for it in items:
-                    if isinstance(it, dict):
-                        it["token"] = token
-                tasks_accum.extend(items)
+            base_params.update({"expired_only":"false","filter_expired":"true"})
 
-        return jsonify({"success": True, "count": len(tasks_accum), "tasks": tasks_accum})
-
-    except Exception as e:
-        logging.exception("Erro /tasks")
-        return jsonify({"success": False, "message": str(e)}), 500
-
-# ------------------ TRANSFORM JSON ------------------ #
-def remove_html_tags(s):
-    import re
-    return re.sub(r"<[^>]+>", "", s) if s else ""
-
-def transform_json_for_submission(task_full):
-    try:
-        task = task_full.get("task") or task_full
-        answers_in = task_full.get("answers") or {}
-        novo = {"accessed_on": task_full.get("accessed_on") or now_iso(),
-                "executed_on": task_full.get("executed_on") or now_iso(),
-                "answers": {}}
-
-        for qid_str, qdata in answers_in.items():
-            qid = int(qid_str) if isinstance(qid_str, str) and qid_str.isdigit() else qdata.get("question_id") or qid_str
-            task_questions = task.get("questions") or []
-            task_question = next((q for q in task_questions if q and (q.get("id") == qid or str(q.get("id")) == str(qid))), None)
-            if not task_question:
+        for target in targets:
+            params = dict(base_params)
+            params["publication_target"]=target
+            try:
+                r = requests.get(f"{API_BASE_URL}/tms/task/todo",
+                                 params=params,
+                                 headers=default_headers({"x-api-key": token}), timeout=15)
+                if r.status_code==200:
+                    payload = r.json()
+                    if isinstance(payload,list):
+                        tasks_found.extend(payload)
+                    elif isinstance(payload,dict) and "tasks" in payload:
+                        tasks_found.extend(payload.get("tasks",[]))
+            except Exception:
+                logging.exception("Erro ao buscar tasks para target %s", target)
                 continue
 
-            answer_payload = {"question_id": task_question.get("id"), "question_type": task_question.get("type"), "answer": None}
-            qtype = task_question.get("type")
-            options = task_question.get("options", {})
-
-            if qtype == "order-sentences":
-                sentences = options.get("sentences") if isinstance(options, dict) else None
-                answer_payload["answer"] = [s.get("value") for s in sentences] if sentences else []
-            elif qtype == "fill-words":
-                phrase = options.get("phrase") if isinstance(options, dict) else None
-                if phrase:
-                    answer_payload["answer"] = [item.get("value") for idx, item in enumerate(phrase) if idx % 2 == 1]
-            elif qtype == "text_ai":
-                answer_payload["answer"] = {"0": remove_html_tags(task_question.get("comment") or task_question.get("value") or "")}
-            elif qtype == "fill-letters":
-                if "answer" in options:
-                    answer_payload["answer"] = options.get("answer")
-            elif qtype == "cloud":
-                answer_payload["answer"] = options.get("ids") if options.get("ids") else []
-            elif qtype == "multiple_choice":
-                chosen = next((k for k,v in options.items() if isinstance(v, dict) and v.get("correct")), next(iter(options.keys()), None))
-                answer_payload["answer"] = chosen
-            else:
-                if isinstance(options, dict):
-                    answer_payload["answer"] = {k: (v.get("answer") if isinstance(v, dict) else bool(v)) for k,v in options.items()}
-
-            novo["answers"][str(qid)] = answer_payload
-        return novo
+        return jsonify({"success": True, "tasks": tasks_found, "count": len(tasks_found)})
     except Exception as e:
-        logging.exception("Erro transform_json_for_submission")
-        raise
+        logging.exception("tasks error")
+        return jsonify({"success": False, "message": str(e)}), 500
 
-# ------------------ TASK PROCESS ------------------ #
+@app.route("/tasks/pending", methods=["POST"])
+def tasks_pending():
+    return tasks()
+
+@app.route("/tasks/expired", methods=["POST"])
+def tasks_expired():
+    return tasks()
+
 @app.route("/task/process", methods=["POST"])
-def task_process():
+def task_process_route():
     try:
         data = request.get_json(force=True)
         token = data.get("auth_token")
-        task_obj = data.get("task")
+        task = data.get("task")
         time_min = int(data.get("time_min", 1))
         time_max = int(data.get("time_max", 3))
         is_draft = bool(data.get("is_draft", False))
-        if not token or not task_obj:
-            return jsonify({"success": False, "message": "auth_token e task obrigatórios"}), 400
-
-        task_id = task_obj.get("id") or task_obj.get("task_id") or task_obj.get("taskId")
-        if not task_id:
-            return jsonify({"success": False, "message": "task sem id"}), 400
-
-        get_url = f"{API_BASE}/tms/task/{task_id}"
-        headers = default_headers({"x-api-key": token})
-        r = requests.get(get_url, headers=headers, timeout=25)
-        r.raise_for_status()
-        task_details = r.json()
-
-        composed = {"task": task_details if isinstance(task_details, dict) else {"questions": task_details},
-                    "answers": task_obj.get("answers") or {},
-                    "accessed_on": now_iso(), "executed_on": now_iso()}
-
-        answers_payload_struct = transform_json_for_submission(composed)
-        payload = {"answers": answers_payload_struct.get("answers", {}), "final": not is_draft, "status": "draft" if is_draft else "submitted"}
-        submit_url = f"{API_BASE}/tms/task/{task_id}/answer"
-        resp = requests.post(submit_url, headers=default_headers({"x-api-key": token}), json=payload, timeout=30)
-        resp.raise_for_status()
-        return jsonify({"success": True, "task_id": task_id, "result": resp.json()})
+        if not token or not task:
+            return jsonify({"success": False, "message": "Token e dados da tarefa obrigatórios"}), 400
+        res = process_one_task(token, task, time_min, time_max, is_draft)
+        return jsonify(res)
     except Exception as e:
-        logging.exception("Erro /task/process")
+        logging.exception("task_process_route error")
         return jsonify({"success": False, "message": str(e)}), 500
 
-# ------------------ COMPLETE (parallel) ------------------ #
 @app.route("/complete", methods=["POST"])
-def complete_mult():
+def complete_route():
     try:
         data = request.get_json(force=True)
         token = data.get("auth_token")
         tasks = data.get("tasks", [])
-        time_min = int(data.get("time_min", 1))
-        time_max = int(data.get("time_max", 3))
+        time_min = int(data.get("time_min",1))
+        time_max = int(data.get("time_max",3))
         is_draft = bool(data.get("is_draft", False))
         if not token or not tasks:
-            return jsonify({"success": False, "message": "auth_token e tasks[] obrigatórios"}), 400
+            return jsonify({"success": False, "message": "Token e tarefas obrigatórios"}), 400
 
         results = []
-        max_workers = min(8, max(2, len(tasks)))
+        max_workers = min(6, max(1, len(tasks)))
         with ThreadPoolExecutor(max_workers=max_workers) as ex:
-            futures = [ex.submit(lambda t: task_process_internal(token, t, time_min, time_max, is_draft), t) for t in tasks]
+            futures = [ex.submit(process_one_task, token, t, time_min, time_max, is_draft) for t in tasks]
             for f in as_completed(futures):
-                results.append(f.result())
+                try: results.append(f.result())
+                except Exception as e:
+                    logging.exception("thread error")
+                    results.append({"success": False, "message": str(e)})
 
-        return jsonify({"success": True, "message": f"Processed {len(results)} tasks", "results": results})
+        return jsonify({"success": True, "message": f"Processamento concluído para {len(tasks)} tarefas", "results": results})
     except Exception as e:
-        logging.exception("Erro /complete")
+        logging.exception("complete error")
         return jsonify({"success": False, "message": str(e)}), 500
 
-def task_process_internal(token, task_obj, time_min, time_max, is_draft):
-    # chamada direta sem HTTP interno
-    data = {"auth_token": token, "task": task_obj, "time_min": time_min, "time_max": time_max, "is_draft": is_draft}
-    with app.test_request_context(json=data):
-        return task_process().get_json()
-
-# ------------------ HEALTH ------------------ #
 @app.route("/health", methods=["GET"])
 def health():
-    return jsonify({"status": "ok", "time": now_iso()})
+    return jsonify({"status":"ok", "time": now_iso()})
 
-if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))
+if __name__=="__main__":
+    port = int(os.environ.get("PORT",5000))
     app.run(host="0.0.0.0", port=port)
