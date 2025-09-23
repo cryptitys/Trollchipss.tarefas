@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Trollchipss - Automação</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <script src="https://kit.fontawesome.com/yourfontawesomekit.js" crossorigin="anonymous"></script>
+  <style>
+    :root {
+      --bg:#0b1220;
+      --card:#0f1724;
+      --accent:#2f7be2;
+      --muted:#95a0b8;
+      --text:#e6eef8;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin:0; font-family: 'Inter',sans-serif;
+      background: linear-gradient(180deg,#041024,#071226);
+      color: var(--text); min-height:100vh;
+      display:flex; align-items:center; justify-content:center; padding:20px;
+    }
+    .panel {
+      width:100%; max-width:960px;
+      background:var(--card); border-radius:14px;
+      padding:24px; box-shadow:0 10px 30px rgba(0,0,0,.5);
+    }
+    h1 { margin:0 0 10px; font-size:22px; color:var(--accent); }
+    label { font-size:13px; color:var(--muted); display:block; margin-top:10px; }
+    input[type=text], input[type=password], input[type=number] {
+      width:100%; padding:10px; border-radius:8px;
+      border:1px solid rgba(255,255,255,0.1);
+      background:rgba(255,255,255,0.05); color:var(--text);
+    }
+    .buttons { margin-top:14px; display:flex; gap:10px; }
+    .btn {
+      padding:10px 16px; border-radius:8px; border:none;
+      background: linear-gradient(90deg,var(--accent),#4ea4ff);
+      color:#fff; cursor:pointer; font-weight:600;
+    }
+    .btn.secondary { background:transparent; border:1px solid rgba(255,255,255,0.2); }
+    .Notificacao {
+      padding:10px 14px; border-radius:8px; margin:6px 0;
+      background:rgba(0,0,0,0.7); border-left:4px solid var(--accent);
+      opacity:0; transform:translateX(20px); transition:all .3s;
+    }
+    .Notificacao.show { opacity:1; transform:translateX(0); }
+    .Notificacao.success { border-left-color:#20c997; }
+    .Notificacao.error { border-left-color:#ff6b6b; }
+    .Notificacao.warning { border-left-color:#ffc107; }
+    #notificationsContainer {
+      position:fixed; top:20px; right:20px;
+      display:flex; flex-direction:column; z-index:9999;
+    }
+    /* Modal */
+    #taskSelectionModal {
+      display:none; position:fixed; top:0; left:0; right:0; bottom:0;
+      background:rgba(0,0,0,0.7); align-items:center; justify-content:center; z-index:9998;
+    }
+    .modal-content {
+      background:var(--card); padding:20px; border-radius:12px; width:90%; max-width:600px;
+    }
+    .task-list-item { margin:6px 0; }
+    .modal-actions { margin-top:16px; display:flex; gap:10px; flex-wrap:wrap; }
+  </style>
+</head>
+<body>
+  <div class="panel">
+    <h1>Trollchipss • Automação</h1>
+    <label for="ra">RA</label>
+    <input id="ra" type="text" placeholder="ex: 123456789sp"/>
+    <label for="senha">Senha</label>
+    <input id="senha" type="password" placeholder="Sua senha"/>
+    <div class="buttons">
+      <button class="btn" id="btnPending">Lições Pendentes</button>
+      <button class="btn secondary" id="btnExpired">Lições Expiradas</button>
+    </div>
+  </div>
+
+  <!-- Modal de tarefas -->
+  <div id="taskSelectionModal">
+    <div class="modal-content">
+      <h3 id="taskSelectionModalTitle">Tarefas</h3>
+      <div>
+        <label><input type="checkbox" id="selectAllTasksCheckbox"/> Selecionar todas</label>
+      </div>
+      <div id="taskListContainer"></div>
+      <div class="modal-actions">
+        <label>Tempo min (min): <input type="number" id="modalMinTime" value="1" style="width:60px"></label>
+        <label>Tempo max (min): <input type="number" id="modalMaxTime" value="3" style="width:60px"></label>
+        <button class="btn" id="startSelectedTasksBtn">Processar selecionadas</button>
+        <button class="btn secondary" id="startAllTasksBtn">Processar todas</button>
+        <button class="btn secondary" id="startSelectedTasksDraftBtn">Salvar rascunho</button>
+        <button class="btn secondary" id="closeTaskSelectionModalBtn">Fechar</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="notificationsContainer"></div>
+
+<script>
+const API_URL = "https://trollchipss-tarefas-ajh4.onrender.com";
+
+let currentFetchedTasks = [];
+let currentTaskFilterType = "";
+
+// ================= Notificações =================
+function showNotification(title, message, type="info", duration=3000){
+  const container = document.getElementById("notificationsContainer");
+  const el = document.createElement("div");
+  el.className = `Notificacao ${type}`;
+  el.innerHTML = `<strong>${title}</strong><div>${message}</div>`;
+  container.appendChild(el);
+  setTimeout(()=>el.classList.add("show"),10);
+  if(type !== "processing"){
+    setTimeout(()=>{
+      el.classList.remove("show");
+      setTimeout(()=>el.remove(),300);
+    }, duration);
+  }
+  return el;
+}
+
+// ================= API helpers =================
+async function callBackend(endpoint, body){
+  try {
+    const res = await fetch(`${API_URL}${endpoint}`, {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify(body)
+    });
+    return await res.json();
+  } catch(e){
+    return { success:false, message:e.message };
+  }
+}
+
+// ================= Fluxo =================
+async function loginAndFetch(taskFilter){
+  const ra = document.getElementById("ra").value.trim();
+  const senha = document.getElementById("senha").value.trim();
+  if(!ra || !senha){ showNotification("Erro","Preencha RA e senha","error"); return; }
+
+  showNotification("Login","Realizando login...","info");
+  const loginResult = await callBackend("/auth",{ ra, password:senha });
+  if(!loginResult.success){ showNotification("Erro",loginResult.message,"error"); return; }
+
+  const token = loginResult.auth_token;
+  showNotification("Sucesso","Login ok","success");
+
+  const tasksResult = await callBackend("/tasks",{ auth_token:token, filter:taskFilter });
+  if(!tasksResult.success){ showNotification("Erro",tasksResult.message,"error"); return; }
+
+  currentFetchedTasks = tasksResult.tasks || [];
+  currentTaskFilterType = taskFilter;
+  displayTasksInModal(currentFetchedTasks, taskFilter, token);
+}
+
+function displayTasksInModal(tasks, filterType, token){
+  const container = document.getElementById("taskListContainer");
+  const selectAll = document.getElementById("selectAllTasksCheckbox");
+  container.innerHTML="";
+  selectAll.checked=false;
+
+  if(tasks.length===0){
+    container.innerHTML = "<p>Nenhuma tarefa encontrada.</p>";
+  } else {
+    tasks.forEach(t=>{
+      const div=document.createElement("div");
+      div.className="task-list-item";
+      div.innerHTML = `
+        <input type="checkbox" id="task-${t.id}" value="${t.id}">
+        <label for="task-${t.id}">${t.title||"sem título"}</label>
+      `;
+      container.appendChild(div);
+    });
+  }
+  document.getElementById("taskSelectionModalTitle").textContent =
+    filterType==="pending" ? "Lições Pendentes" : "Lições Expiradas";
+  document.getElementById("taskSelectionModal").style.display="flex";
+  container.dataset.token = token;
+}
+
+function getSelectedTasks(){
+  const ids = [...document.querySelectorAll("#taskListContainer input[type=checkbox]:checked")].map(i=>i.value);
+  return currentFetchedTasks.filter(t=>ids.includes(String(t.id)));
+}
+
+async function processTasks(tasks, isDraft){
+  const token = document.getElementById("taskListContainer").dataset.token;
+  const minTime = parseInt(document.getElementById("modalMinTime").value)||1;
+  const maxTime = parseInt(document.getElementById("modalMaxTime").value)||3;
+
+  if(!token){ showNotification("Erro","Sem token válido","error"); return; }
+  if(!tasks.length){ showNotification("Aviso","Nenhuma tarefa selecionada","warning"); return; }
+
+  const notif = showNotification("Processando",`Enviando ${tasks.length} tarefas...`,"processing");
+  const res = await callBackend("/complete",{ auth_token:token, tasks, time_min:minTime, time_max:maxTime, is_draft:isDraft });
+
+  notif.remove();
+  if(!res.success){ showNotification("Erro",res.message,"error"); return; }
+  showNotification("Sucesso",res.message,"success");
+  if(Array.isArray(res.results)){
+    res.results.forEach(r=>{
+      if(r.success) showNotification("Tarefa OK",`Task ${r.task_id} concluída`,"success",5000);
+      else showNotification("Erro",`Task ${r.task_id} falhou: ${r.message}`,"error",5000);
+    });
+  }
+}
+
+// ================= Listeners =================
+document.getElementById("btnPending").addEventListener("click",()=>loginAndFetch("pending"));
+document.getElementById("btnExpired").addEventListener("click",()=>loginAndFetch("expired"));
+document.getElementById("selectAllTasksCheckbox").addEventListener("change",function(){
+  document.querySelectorAll("#taskListContainer input[type=checkbox]").forEach(cb=>cb.checked=this.checked);
+});
+document.getElementById("startSelectedTasksBtn").addEventListener("click",()=>processTasks(getSelectedTasks(),false));
+document.getElementById("startAllTasksBtn").addEventListener("click",()=>processTasks(currentFetchedTasks,false));
+document.getElementById("startSelectedTasksDraftBtn").addEventListener("click",()=>processTasks(getSelectedTasks(),true));
+document.getElementById("closeTaskSelectionModalBtn").addEventListener("click",()=>{document.getElementById("taskSelectionModal").style.display="none";});
+</script>
+</body>
+                                  </html>
