@@ -1,0 +1,174 @@
+<!Doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Trollchipss - Tarefas</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0b1220; --card:#0f1724; --accent:#2f7be2; --muted:#95a0b8; --glass:rgba(255,255,255,0.03);
+  font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+}
+*{box-sizing:border-box}
+body{margin:0;background:linear-gradient(180deg,#041024,#071226);color:#e6eef8;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+.panel{width:100%;max-width:980px;background:linear-gradient(180deg,var(--card),#071027);border-radius:14px;padding:24px;box-shadow:0 10px 30px rgba(2,6,23,0.7);border:1px solid rgba(255,255,255,0.03)}
+.header{display:flex;align-items:center;gap:16px;margin-bottom:18px}
+.logo{font-weight:700;color:var(--accent);font-size:20px}
+.small{color:var(--muted);font-size:13px}
+form .row{display:flex;gap:12px;align-items:center;margin-bottom:12px}
+input[type=text], input[type=password], input[type=number]{flex:1;padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,0.03);background:var(--glass);color:inherit}
+label{font-size:13px;color:var(--muted);display:block;margin-bottom:6px}
+.buttons{display:flex;gap:12px;margin-top:8px}
+.btn{padding:10px 14px;border-radius:10px;border:none;background:linear-gradient(90deg,var(--accent),#2fa0ff);color:#fff;cursor:pointer}
+.btn.secondary{background:transparent;border:1px solid rgba(255,255,255,0.06)}
+.tasks-panel{margin-top:16px;background:rgba(255,255,255,0.02);padding:12px;border-radius:10px}
+.task-item{display:flex;align-items:center;gap:12px;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.02);margin-bottom:8px}
+.controls{display:flex;gap:8px;align-items:center;margin-top:12px}
+.toasts{position:fixed;right:18px;top:18px;display:flex;flex-direction:column;gap:10px;z-index:9999}
+.toast{padding:10px 14px;border-radius:10px;min-width:220px;background:rgba(0,0,0,0.6);border:1px solid rgba(255,255,255,0.04)}
+.toast.success{border-left:4px solid #20c997}
+.toast.error{border-left:4px solid #ff6b6b}
+.footer{margin-top:14px;font-size:12px;color:var(--muted)}
+@media(max-width:600px){.header{flex-direction:column;align-items:flex-start}}
+</style>
+</head>
+<body>
+<div class="panel" id="app">
+  <div class="header">
+    <div>
+      <div class="logo">Trollchipss • Tarefas</div>
+      <div class="small">Automação de tarefas — EDUSP</div>
+    </div>
+    <div style="margin-left:auto">
+      <span id="userNick" class="small"></span>
+    </div>
+  </div>
+
+  <div id="loginBox">
+    <label for="ra">RA</label>
+    <input id="ra" type="text" placeholder="ex: 123456790sp" />
+    <label for="senha">Senha</label>
+    <input id="senha" type="password" placeholder="Senha" />
+    <div class="buttons">
+      <button class="btn" id="btnPending">Lições Pendentes</button>
+      <button class="btn secondary" id="btnExpired">Lições Expiradas</button>
+    </div>
+  </div>
+
+  <div id="tasksBox" style="display:none">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div class="small" id="tasksInfo">0 lições</div>
+      <div>
+        <label for="minTime" class="small">Tempo min (min)</label>
+        <input id="minTime" type="number" value="1" style="width:80px;display:inline-block" />
+        <label for="maxTime" class="small" style="margin-left:8px">Tempo max (min)</label>
+        <input id="maxTime" type="number" value="3" style="width:80px;display:inline-block" />
+      </div>
+    </div>
+
+    <div class="tasks-panel" id="taskList"></div>
+
+    <div class="controls">
+      <label><input type="checkbox" id="selectAll" /> Selecionar todas</label>
+      <button class="btn" id="processSelected">Processar selecionadas</button>
+      <button class="btn secondary" id="processAll">Processar todas</button>
+      <label style="margin-left:auto"><input id="draft" type="checkbox" /> Salvar rascunho</label>
+    </div>
+
+    <div class="footer">
+      Depois do deploy, atualize <code>PY_SERVER</code> no script para a URL do Render.
+    </div>
+  </div>
+</div>
+
+<div class="toasts" id="toasts"></div>
+
+<script>
+const PY_SERVER = 'https://trollchipss-tarefas-ajh4.onrender.com';
+
+function toast(title,msg,ms=2500){
+  const root = document.getElementById('toasts');
+  const el = document.createElement('div');
+  el.className='toast';
+  el.innerHTML=`<strong>${title}</strong><div style="font-size:13px;color:#bcd">${msg}</div>`;
+  root.appendChild(el);
+  setTimeout(()=>el.classList.add('show'),10);
+  setTimeout(()=>{ el.classList.remove('show'); el.addEventListener('transitionend',()=>el.remove(),{once:true}) }, ms);
+}
+
+async function apiPost(path,payload){
+  try{
+    const res = await fetch(PY_SERVER + path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    const txt = await res.text();
+    try{return JSON.parse(txt);}catch(e){return {success:false,status:res.status,text:txt}}
+  }catch(e){return {success:false,message:e.message}}
+}
+
+document.getElementById('btnPending').addEventListener('click', ()=>loginAndFetch('pending'));
+document.getElementById('btnExpired').addEventListener('click', ()=>loginAndFetch('expired'));
+document.getElementById('selectAll').addEventListener('change', e=>{document.querySelectorAll('#taskList input[type=checkbox]').forEach(cb=>cb.checked=e.target.checked) });
+document.getElementById('processSelected').addEventListener('click', ()=>processSelected());
+document.getElementById('processAll').addEventListener('click', ()=>processAll());
+
+let currentTasks=[],currentToken=null,currentFilter='pending';
+
+async function loginAndFetch(filter){
+  const ra=document.getElementById('ra').value.trim();
+  const senha=document.getElementById('senha').value.trim();
+  if(!ra||!senha){toast('Erro','Preencha RA e senha');return;}
+  toast('Autenticação','Tentando login...',1200);
+  const login = await apiPost('/auth',{ra,password:senha});
+  if(!login.success){toast('Erro','Falha no login: '+(login.message||login.detail||login.text||''));return;}
+  currentToken=login.auth_token||(login.user_info&&login.user_info.auth_token);
+  document.getElementById('userNick').textContent=login.nick||login.user_info?.nick||'';
+  toast('Sucesso','Login OK',900);
+
+  const tasksRes=await apiPost('/tasks',{auth_token:currentToken,filter});
+  if(!tasksRes.success){toast('Erro','Não foi possível buscar tarefas: '+(tasksRes.message||''));return;}
+  currentTasks=tasksRes.tasks||[];
+  currentFilter=filter;
+  renderTasks();
+  toast('Pronto',`Encontradas ${currentTasks.length} tarefas`,1500);
+}
+
+function renderTasks(){
+  const list=document.getElementById('taskList');
+  list.innerHTML='';
+  if(currentTasks.length===0){list.innerHTML='<div style="color:#9fcbe8;padding:8px">Nenhuma tarefa</div>';document.getElementById('tasksBox').style.display='block';return;}
+  currentTasks.forEach(t=>{
+    const div=document.createElement('div');
+    div.className='task-item';
+    div.innerHTML=`<input type="checkbox" value="${t.id}" id="t${t.id}"/><label for="t${t.id}" class="title">${escapeHtml(t.title||'sem título')}</label>`;
+    list.appendChild(div);
+  });
+  document.getElementById('tasksBox').style.display='block';
+}
+
+function escapeHtml(s){if(!s) return '';return s.replace(/[&<>"'/]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"/":'&#x2F;',"'":'&#39;'}[c]));}
+
+function getSelectedTasks(){const ids=Array.from(document.querySelectorAll('#taskList input[type=checkbox]:checked')).map(i=>i.value);return currentTasks.filter(t=>ids.includes(String(t.id)));}
+
+async function processSelected(){const selected=getSelectedTasks();if(selected.length===0){toast('Aviso','Selecione ao menos uma tarefa');return;}await sendToComplete(selected);}
+async function processAll(){if(currentTasks.length===0){toast('Aviso','Nenhuma tarefa');return;}await sendToComplete(currentTasks);}
+
+async function sendToComplete(tasks){
+  if(!currentToken){toast('Erro','Sem token. Faça login');return;}
+  const minTime=parseInt(document.getElementById('minTime').value)||1;
+  const maxTime=parseInt(document.getElementById('maxTime').value)||3;
+  const isDraft=document.getElementById('draft').checked||false;
+  toast('Processando','Enviando ao servidor...');
+  const res=await apiPost('/complete',{auth_token:currentToken,tasks,time_min:minTime,time_max:maxTime,is_draft:isDraft});
+  if(!res.success){toast('Erro','Processamento falhou: '+(res.message||res.text||''));return;}
+  toast('Sucesso',res.message||'Processamento concluído',2500);
+  if(Array.isArray(res.results)){
+    res.results.forEach(r=>{
+      if(r.success)toast('Tarefa OK',`task ${r.task_id} processada`,2200);
+      else toast('Erro',`task ${r.task_id} falhou: ${r.message}`,4000);
+    });
+  }
+}
+</script>
+</body>
+</html>
