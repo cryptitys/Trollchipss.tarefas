@@ -89,158 +89,95 @@
   <div class="toasts" id="toasts"></div>
 
   <script>
-    // === CONFIGURE ===
-    const PY_SERVER = 'https://trollchipss-tarefas-ajh4.onrender.com'; // <- atualize com sua URL do Render
+    /* ========== CONFIG ===========
+Change this to your Render URL after deploy, e.g. https://trollchipss-tarefas.onrender.com
+============================= */
+const PY_SERVER = 'https://trollchipss-tarefas-ajh4.onrender.com'; 
 
-    // Utils de toasts
-    function toast(msg, type='info', duration=5000){
-      const el = document.createElement('div');
-      el.className = 'toast ' + (type === 'success' ? 'success' : (type==='error' ? 'error' : ''));
-      el.textContent = msg;
-      document.getElementById('toasts').appendChild(el);
-      setTimeout(()=>{ el.style.opacity=0; setTimeout(()=>el.remove(),400) }, duration);
-    }
+function toast(title, msg, ms=2500){
+  const root = document.getElementById('notifications');
+  const el = document.createElement('div');
+  el.className='toast';
+  el.innerHTML = `<strong>${title}</strong><div style="font-size:13px;color:#bcd">${msg}</div>`;
+  root.appendChild(el);
+  setTimeout(()=>el.classList.add('show'),10);
+  setTimeout(()=>{ el.classList.remove('show'); el.addEventListener('transitionend',()=>el.remove(),{once:true}) }, ms);
+}
 
-    // DOM refs
-    const raInput = document.getElementById('ra');
-    const pwdInput = document.getElementById('pwd');
-    const btnPending = document.getElementById('btnPending');
-    const btnExpired = document.getElementById('btnExpired');
-    const loginBox = document.getElementById('loginBox');
-    const tasksBox = document.getElementById('tasksBox');
-    const listTasks = document.getElementById('listTasks');
-    const tasksInfo = document.getElementById('tasksInfo');
-    const selectAll = document.getElementById('selectAll');
-    const processSelected = document.getElementById('processSelected');
-    const processAll = document.getElementById('processAll');
-    const minTime = document.getElementById('minTime');
-    const maxTime = document.getElementById('maxTime');
-    const draftBox = document.getElementById('draft');
-    const userNick = document.getElementById('userNick');
-
-    let AUTH_TOKEN = null;
-    let CURRENT_TASKS = [];
-    let CURRENT_FILTER = 'pending';
-
-    async function postJSON(path, body){
-      const res = await fetch(`${PY_SERVER}${path}`, {
-        method: 'POST',
-        headers: {'Content-Type':'application/json'},
-        body: JSON.stringify(body)
-      });
-      return res.json();
-    }
-
-    async function attemptLogin(filter){
-      const ra = raInput.value.trim();
-      const pw = pwdInput.value.trim();
-      if(!ra || !pw){ toast('Preencha RA e senha', 'error'); return; }
-      toast('Fazendo login...', 'info', 1800);
-      try{
-        const r = await postJSON('/auth', { ra, password: pw });
-        if(!r.success){ toast('Login falhou: ' + (r.message || 'verifique RA/senha'), 'error'); return; }
-        AUTH_TOKEN = r.auth_token;
-        userNick.textContent = r.nick || '';
-        toast('Login bem-sucedido', 'success');
-        // carrega tasks
-        await loadTasks(filter);
-      }catch(e){
-        console.error(e);
-        toast('Erro ao conectar backend', 'error');
-      }
-    }
-
-    async function loadTasks(filter){
-      CURRENT_FILTER = filter;
-      toast('Buscando tarefas...', 'info', 1500);
-      try{
-        const r = await postJSON('/tasks', { auth_token: AUTH_TOKEN, filter });
-        if(!r.success){ toast('Falha ao listar tarefas', 'error'); return; }
-        CURRENT_TASKS = r.tasks || [];
-        renderTasks(CURRENT_TASKS);
-        loginBox.style.display = 'none';
-        tasksBox.style.display = 'block';
-      }catch(e){
-        console.error(e);
-        toast('Erro ao buscar tarefas', 'error');
-      }
-    }
-
-    function renderTasks(items){
-      listTasks.innerHTML = '';
-      tasksInfo.textContent = `${items.length} lições`;
-      items.forEach((t, idx) => {
-        const div = document.createElement('div');
-        div.className = 'task-item';
-        div.dataset.index = idx;
-        const ch = document.createElement('input');
-        ch.type = 'checkbox';
-        ch.className = 'task-ch';
-        ch.dataset.idx = idx;
-        const title = document.createElement('div');
-        title.innerHTML = `<div class="title">${t.title || t.name || 'Sem título'}</div><div class="small">${t.room || ''} • id:${t.id || t.task_id || ''}</div>`;
-        div.appendChild(ch);
-        div.appendChild(title);
-        listTasks.appendChild(div);
-      });
-    }
-
-    selectAll.addEventListener('change', ()=> {
-      document.querySelectorAll('.task-ch').forEach(cb => cb.checked = selectAll.checked);
+async function apiPost(path, payload){
+  try {
+    const res = await fetch(PY_SERVER + path, {
+      method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)
     });
+    const txt = await res.text();
+    try{ return JSON.parse(txt); } catch(e){ return { success:false, status:res.status, text:txt } }
+  } catch(e){
+    return { success:false, message:e.message };
+  }
+}
 
-    btnPending.addEventListener('click', ()=> attemptLogin('pending'));
-    btnExpired.addEventListener('click', ()=> attemptLogin('expired'));
+/* UI wiring */
+document.getElementById('pending').addEventListener('click', ()=>loginAndFetch('pending'));
+document.getElementById('expired').addEventListener('click', ()=>loginAndFetch('expired'));
+document.getElementById('selectAll').addEventListener('change', (e)=>{ document.querySelectorAll('#taskList input[type=checkbox]').forEach(cb=>cb.checked=e.target.checked); });
+document.getElementById('processSelected').addEventListener('click', ()=>processSelected());
+document.getElementById('processAll').addEventListener('click', ()=>processAll());
 
-    processSelected.addEventListener('click', async ()=>{
-      const checked = Array.from(document.querySelectorAll('.task-ch')).filter(c=>c.checked).map(c=>CURRENT_TASKS[parseInt(c.dataset.idx)]);
-      if(checked.length===0){ toast('Nenhuma tarefa selecionada', 'error'); return; }
-      await sendToComplete(checked);
+let currentTasks = [], currentToken = null, currentFilter='pending';
+
+async function loginAndFetch(filter){
+  const ra = document.getElementById('ra').value.trim();
+  const senha = document.getElementById('senha').value.trim();
+  if(!ra || !senha){ toast('Erro','Preencha RA e senha'); return; }
+  toast('Autenticação','Tentando login...',1200);
+  const login = await apiPost('/auth',{ ra, password: senha });
+  if(!login.success){ toast('Erro','Falha no login: '+(login.message||login.detail||login.text||'')); return; }
+  currentToken = login.auth_token || (login.user_info && login.user_info.auth_token);
+  toast('Sucesso','Login OK',900);
+
+  const tasksRes = await apiPost('/tasks',{ auth_token: currentToken, filter });
+  if(!tasksRes.success){ toast('Erro','Não foi possível buscar tarefas: '+(tasksRes.message||'')); return; }
+  currentTasks = tasksRes.tasks||[];
+  currentFilter = filter;
+  renderTasks();
+  toast('Pronto', `Encontradas ${currentTasks.length} tarefas`, 1500);
+}
+
+function renderTasks(){
+  const list = document.getElementById('taskList');
+  list.innerHTML='';
+  if(currentTasks.length===0){ list.innerHTML='<div style="color:#9fcbe8;padding:8px">Nenhuma tarefa</div>'; document.getElementById('panel').style.display='block'; return; }
+  currentTasks.forEach(t=>{
+    const div = document.createElement('div');
+    div.className='task-item';
+    div.innerHTML = `<input type="checkbox" value="${t.id}" id="t${t.id}"/><label for="t${t.id}">${escapeHtml(t.title||'sem título')}</label>`;
+    list.appendChild(div);
+  });
+  document.getElementById('panel').style.display='block';
+}
+
+function escapeHtml(s){ if(!s) return ''; return s.replace(/[&<>"'/]/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"/":'&#x2F;',"'":'&#39;'}[c])); }
+
+function getSelectedTasks(){ const ids = Array.from(document.querySelectorAll('#taskList input[type=checkbox]:checked')).map(i=>i.value); return currentTasks.filter(t=>ids.includes(String(t.id))); }
+
+async function processSelected(){ const selected = getSelectedTasks(); if(selected.length===0){ toast('Aviso','Selecione ao menos uma tarefa'); return; } await sendToComplete(selected); }
+async function processAll(){ if(currentTasks.length===0){ toast('Aviso','Nenhuma tarefa'); return; } await sendToComplete(currentTasks); }
+
+async function sendToComplete(tasks){
+  if(!currentToken){ toast('Erro','Sem token. Faça login'); return; }
+  const minTime = parseInt(document.getElementById('minTime').value)||1;
+  const maxTime = parseInt(document.getElementById('maxTime').value)||3;
+  toast('Processando','Enviando ao servidor...');
+  const res = await apiPost('/complete', { auth_token: currentToken, tasks, time_min: minTime, time_max: maxTime, is_draft:false });
+  if(!res.success){ toast('Erro','Processamento falhou: '+(res.message||res.text||'')); return; }
+  toast('Sucesso', res.message || 'Processamento concluído', 2500);
+  if(Array.isArray(res.results)){
+    res.results.forEach(r=>{
+      if(r.success) toast('Tarefa OK', `task ${r.task_id} processada`, 2200);
+      else toast('Erro', `task ${r.task_id} falhou: ${r.message}`, 4000);
     });
-
-    processAll.addEventListener('click', async ()=> {
-      if(CURRENT_TASKS.length===0){ toast('Sem tarefas', 'error'); return; }
-      await sendToComplete(CURRENT_TASKS);
-    });
-
-    async function sendToComplete(tasks){
-      const tmin = parseInt(minTime.value) || 1;
-      const tmax = parseInt(maxTime.value) || (tmin+1);
-      const is_draft = draftBox.checked || false;
-      toast(`Enviando ${tasks.length} tarefas...`, 'info', 2000);
-      try{
-        const payload = { auth_token: AUTH_TOKEN, tasks, time_min: tmin, time_max: tmax, is_draft };
-        // envia
-        const resp = await postJSON('/complete', payload);
-        if(!resp.success){ toast('Erro no processamento: ' + (resp.message||''), 'error'); return; }
-        // mostra resultados individuais
-        (resp.results || []).forEach(r => {
-          if(r && r.success) toast(`OK: ${r.task_id || r.title || 'tarefa'}`, 'success', 3500);
-          else toast(`ERRO: ${r.task_id || r.title || ''} ${r.message || (r.error||'')}`, 'error', 3500);
-        });
-      }catch(e){
-        console.error(e);
-        toast('Erro ao enviar para processamento', 'error');
-      }
-    }
-
-    // health check / backend alive
-    async function checkBackend(){
-      try{
-        const r = await fetch(`${PY_SERVER}/health`);
-        if(!r.ok) throw new Error('no');
-        return true;
-      }catch(e){
-        toast('Backend indisponível. Atualize PY_SERVER', 'error', 7000);
-        return false;
-      }
-    }
-
-    // quick check on load
-    (async ()=> {
-      await checkBackend();
-    })();
-
+  }
+                                                     }
   </script>
 </body>
   </html>
