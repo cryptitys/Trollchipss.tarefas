@@ -40,8 +40,9 @@ def auth():
     """
     POST /auth
     body: { ra, password }
-    faz POST em https://edusp-api.ip.tv/registration/edusp
-    retorna { success, auth_token, nick }
+    Faz POST em https://edusp-api.ip.tv/registration/edusp
+    Tenta múltiplos formatos de login para evitar erro 400
+    Retorna { success, auth_token, nick, debug }
     """
     try:
         data = request.get_json(force=True)
@@ -52,35 +53,40 @@ def auth():
             return jsonify({"success": False, "message": "ra e password são obrigatórios"}), 400
 
         login_url = f"{API_BASE}/registration/edusp"
-        payload = {"login": ra, "password": password}
 
-        resp = requests.post(login_url, json=payload, headers=default_headers())
-        # não lançar exceção automaticamente para poder tratar 4xx
-        if resp.status_code != 200:
-            return jsonify({
-                "success": False,
-                "message": f"Erro de login externo: {resp.status_code}",
-                "body": resp.text
-            }), resp.status_code
+        # Formatos possíveis de login
+        payloads = [
+            {"login": ra, "password": password},
+            {"ra": ra, "password": password},
+            {"username": ra, "password": password}
+        ]
 
-        body = resp.json()
+        headers = default_headers()
 
-        token = body.get("auth_token") or (body.get("data") and body["data"].get("token")) or body.get("token")
-        nick = body.get("nick") or (body.get("data") and body["data"].get("nick")) or body.get("user", {}).get("nick", "")
+        for p in payloads:
+            try:
+                resp = requests.post(login_url, json=p, headers=headers, timeout=15)
+                # se 200, usamos esse
+                if resp.status_code == 200:
+                    body = resp.json()
+                    token = body.get("auth_token") or (body.get("data") and body["data"].get("token")) or body.get("token")
+                    nick = body.get("nick") or (body.get("data") and body["data"].get("nick")) or body.get("user", {}).get("nick", "")
 
-        if not token:
-            logging.warning("Login retornou sem token: %s", body)
-            return jsonify({"success": False, "message": "Autenticação falhou", "raw": body}), 401
+                    if token:
+                        return jsonify({"success": True, "auth_token": token, "nick": nick, "debug_payload": p})
+                    else:
+                        logging.warning("Login retornou sem token: %s", body)
+                        return jsonify({"success": False, "message": "Autenticação falhou", "raw": body, "debug_payload": p}), 401
+                else:
+                    logging.info("Tentativa falhou %s com payload %s", resp.status_code, p)
+            except Exception as e_inner:
+                logging.exception("Erro ao tentar payload %s: %s", p, e_inner)
 
-        return jsonify({"success": True, "auth_token": token, "nick": nick})
+        return jsonify({"success": False, "message": "Todos formatos falharam", "debug_payloads": payloads}), 400
 
-    except requests.RequestException as e:
-        logging.exception("Erro HTTP ao chamar API externa")
-        return jsonify({"success": False, "message": "Erro na API externa", "detail": str(e)}), 502
     except Exception as e:
         logging.exception("Erro interno em /auth")
-        return jsonify({"success": False, "message": str(e)}), 500
-# ------------------ TASKS ------------------ #
+        return jsonify({"success": False, "message": str(e)}), 500# ------------------ TASKS ------------------ #
 def fetch_rooms(auth_token):
     url = f"{API_BASE}/room/user?list_all=true&with_cards=true"
     headers = default_headers({"x-api-key": auth_token})
