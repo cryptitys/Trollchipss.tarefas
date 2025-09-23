@@ -140,52 +140,88 @@ def auth():
     except Exception as e:
         logging.exception("auth error")
         return jsonify({"success": False, "message": str(e)}), 500
-
+# ---------------------------- TASKS -------------------------------------------------------
+# ------------------ TASKS ------------------ #
 @app.route("/tasks", methods=["POST"])
 def tasks():
-    try:
-        data = request.get_json(force=True)
-        token = data.get("auth_token")
-        task_filter = data.get("filter", "pending")
-        if not token:
-            return jsonify({"success": False, "message": "Token é obrigatório"}), 400
+    data = request.get_json()
+    token = data.get("auth_token")
+    task_filter = data.get("filter", "pending")
+    nick = data.get("nick", None)  # opcional, se o login retornar nick
 
+    if not token:
+        return jsonify({"success": False, "message": "Token é obrigatório"}), 400
+
+    try:
+        # 1) Buscar salas
         rooms = fetch_rooms(token)
-        targets = [str(r.get("id")) for r in rooms.get("rooms", []) if r.get("id")]
+        targets = set()
+        room_id_to_name = {}
+
+        for room in rooms.get("rooms", []):
+            if "id" in room:
+                rid = str(room["id"])
+                targets.add(rid)
+                room_id_to_name[rid] = room.get("name", "")
+            if "name" in room:
+                targets.add(room["name"])
+                if nick:
+                    targets.add(f"{room['name']}:{nick}")
+
+        # Regex para capturar IDs perdidos no JSON
+        import re, json
+        room_user_json = json.dumps(rooms)
+        id_matches = re.findall(r'"id"\s*:\s*(\d+)', room_user_json)
+        for mid in id_matches:
+            targets.add(mid)
+
+        targets = list(targets)
+
+        if not targets:
+            print("DEBUG /tasks: nenhuma sala encontrada")
+            return jsonify({"success": True, "tasks": [], "message": "Nenhuma sala encontrada"})
+
+        # 2) Montar query
+        base_params = {
+            "limit": 100,
+            "offset": 0,
+            "is_exam": "false",
+            "with_answer": "true",
+            "is_essay": "false",
+            "with_apply_moment": "true",
+            "answer_statuses": ["pending", "draft"],  # 👈 busca pendentes + rascunhos
+        }
+        if task_filter == "expired":
+            base_params["expired_only"] = "true"
+            base_params["filter_expired"] = "false"
+        else:
+            base_params["expired_only"] = "false"
+            base_params["filter_expired"] = "true"
 
         tasks_found = []
-        base_params = {"limit":100,"offset":0,"is_exam":"false","with_answer":"true",
-                       "is_essay":"false","with_apply_moment":"true"}
-        if task_filter=="expired":
-            base_params.update({"expired_only":"true","filter_expired":"false"})
-        else:
-            base_params.update({"expired_only":"false","filter_expired":"true"})
-
         for target in targets:
-            params = dict(base_params)
-            params["publication_target"]=target
+            params = base_params.copy()
+            params["publication_target"] = target
             try:
                 r = requests.get(f"{API_BASE_URL}/tms/task/todo",
-                                 params=params,
-                                 headers=default_headers({"x-api-key": token}), timeout=15)
-                if r.status_code==200:
-                    payload = r.json()
-                    if isinstance(payload,list):
-                        tasks_found.extend(payload)
-                    elif isinstance(payload,dict) and "tasks" in payload:
-                        tasks_found.extend(payload.get("tasks",[]))
-            except Exception:
-                logging.exception("Erro ao buscar tasks para target %s", target)
+                                 headers=default_headers({"x-api-key": token}),
+                                 params=params, timeout=15)
+                if r.status_code == 200:
+                    data = r.json()
+                    if isinstance(data, list):
+                        tasks_found.extend(data)
+                    elif isinstance(data, dict) and "tasks" in data:
+                        tasks_found.extend(data["tasks"])
+            except Exception as e:
+                print(f"DEBUG /tasks: erro no target {target} ->", str(e))
                 continue
 
+        print(f"DEBUG /tasks: filtro={task_filter}, total={len(tasks_found)} tarefas")
         return jsonify({"success": True, "tasks": tasks_found, "count": len(tasks_found)})
-    except Exception as e:
-        logging.exception("tasks error")
-        return jsonify({"success": False, "message": str(e)}), 500
 
-@app.route("/tasks/pending", methods=["POST"])
-def tasks_pending():
-    return tasks()
+    except Exception as e:
+        print("DEBUG /tasks: erro ->", str(e))
+       return jsonify({"success": False, "message": f"Erro ao buscar tarefas: {str(e)}"}), 500
 
 @app.route("/tasks/expired", methods=["POST"])
 def tasks_expired():
