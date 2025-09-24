@@ -3,261 +3,253 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TROLLCHIPS</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <title>TROLLCHIPS • Central de Scripts</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="shortcut icon" href="logo-trollchips.png" type="image/png">
-  <link rel="stylesheet" href="src/css/styles.css">
-</head>
-<body data-theme="dark">
-<style>
-  /* Reset */
-* { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
-
-body[data-theme="dark"] { background: #0a0a0a; color: #fff; }
-body[data-theme="light"] { background: #f5f5f5; color: #111; }
-
-/* Loader */
-.loader {
-  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-  background: #0a0a0a; display: flex; justify-content: center; align-items: center;
-  z-index: 2000; transition: opacity 0.5s ease, visibility 0.5s ease;
-}
-.loader.hidden { opacity: 0; visibility: hidden; }
-.loader-content { text-align: center; }
-.loader-logo { width: 80px; margin-bottom: 20px; animation: pulse 1.5s infinite; }
-.loader-title { font-size: 2rem; color: #00eaff; }
-.loader-subtitle { font-size: 1.2rem; color: #bbb; }
-@keyframes pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.1); } }
-
-/* Navbar */
-.navbar {
-  position: fixed; top: 0; left: 0; right: 0; height: 60px;
-  background: #111; display: flex; align-items: center; justify-content: space-between;
-  padding: 0 20px; box-shadow: 0 2px 6px rgba(0,0,0,0.4); z-index: 1000;
-}
-.nav-left { display: flex; align-items: center; gap: 15px; }
-.logo { display: flex; align-items: center; font-weight: 700; font-size: 1.1rem; color: #fff; text-decoration: none; }
-.theme-toggle, .sidebar-toggle {
-  background: none; border: none; color: #fff; font-size: 1.2rem; cursor: pointer; transition: 0.3s;
-}
-.theme-toggle:hover, .sidebar-toggle:hover { color: #00f0ff; }
-
-/* Sidebar */
-.sidebar {
-  position: fixed; top: 60px; left: 0; width: 220px; height: 100%;
-  background: #151515; padding: 20px 10px; transform: translateX(-100%);
-  transition: transform 0.3s ease; z-index: 900;
-}
-.sidebar.active { transform: translateX(0); }
-.sidebar-header { margin-bottom: 20px; text-align: center; color: #bbb; }
-.sidebar-logo { display: flex; align-items: center; gap: 8px; justify-content: center; font-weight: 600; color: #00eaff; }
-.sidebar-menu { list-style: none; padding: 0; margin: 0; }
-.sidebar-item { margin-bottom: 15px; }
-.sidebar-link {
-  display: flex; align-items: center; gap: 10px; color: #ddd; text-decoration: none;
-  padding: 8px 12px; border-radius: 8px; transition: 0.3s;
-}
-.sidebar-link:hover, .sidebar-item.active .sidebar-link { background: #222; color: #00f0ff; }
-
-/* Conteúdo */
-.main-content { margin-top: 70px; padding: 20px; transition: margin-left 0.3s; }
-.with-sidebar { margin-left: 240px; }
-.page { display: none; }
-.page.active { display: block; }
-
-/* Seções */
-.section-header { text-align: center; margin-bottom: 30px; }
-.section-title { font-size: 1.8rem; color: #00eaff; margin-bottom: 10px; }
-.section-subtitle { font-size: 1rem; color: #aaa; }
-
-/* Botões */
-.buttons-container { display: flex; flex-wrap: wrap; gap: 15px; justify-content: center; }
-.button {
-  flex: 1 1 200px; max-width: 260px; height: 55px;
-  display: flex; align-items: center; justify-content: center; gap: 8px;
-  font-weight: 600; color: #fff; text-decoration: none;
-  background: linear-gradient(135deg,#1f1f1f,#2c2c2c);
-  border-radius: 12px; transition: 0.3s; position: relative; overflow: hidden;
-}
-.button:before {
-  content: ""; position: absolute; top: 0; left: -100%; width: 100%; height: 100%;
-  background: linear-gradient(90deg,transparent,rgba(255,255,255,0.2),transparent);
-  transition: 0.5s;
-}
-.button:hover:before { left: 100%; }
-.button:hover { transform: translateY(-3px); background: linear-gradient(135deg,#303030,#444); }
-
-/* Footer */
-footer { text-align: center; padding: 20px; color: #888; margin-top: 40px; font-size: 0.9rem; }
-
-/* Responsivo */
-@media(max-width:768px){
-  .with-sidebar { margin-left: 0; }
-  .sidebar { width: 200px; }
-  .button { flex: 1 1 100%; }
-  }
-</style>
-  <!-- Loader -->
-  <div id="loader" class="loader">
-    <div class="loader-content">
-      <img src="logo-trollchips.png" alt="Logo Trollchips" class="loader-logo">
-      <h1 class="loader-title">Bem-vindo ao TROLLCHIPS</h1>
-      <p class="loader-subtitle">Automatizações, Scripts e muito mais</p>
-    </div>
-  </div>
-
-  <!-- App -->
-  <div id="mainApp" class="main-app">
-    <!-- Navbar -->
-    <nav class="navbar">
-      <div class="nav-container">
-        <div class="nav-left">
-          <button id="sidebarToggle" class="sidebar-toggle"><i class="fas fa-bars"></i></button>
-          <a href="#" class="logo">
-            <img src="logo-trollchips.png" alt="Logo Trollchips" style="width: 32px; height: 32px; object-fit: contain; margin-right: 8px;">
-            <span>TROLLCHIPS</span>
-          </a>
-        </div>
-        <div class="nav-right">
-          <button id="themeToggle" class="theme-toggle"><i class="fas fa-moon"></i></button>
-        </div>
-      </div>
-    </nav>
-
-    <!-- Sidebar -->
-    <aside id="sidebar" class="sidebar">
-      <div class="sidebar-header">
-        <div class="sidebar-logo">
-          <i class="fas fa-book"></i>
-          <span>Menu</span>
-        </div>
-      </div>
-      <div class="sidebar-content">
-        <div class="sidebar-section">
-          <h3 class="sidebar-section-title">Principal</h3>
-          <ul class="sidebar-menu">
-            <li class="sidebar-item active">
-              <a href="#intro" class="sidebar-link" data-page="intro">
-                <i class="fas fa-home"></i>
-                <span>Início</span>
-              </a>
-            </li>
-            <li class="sidebar-item">
-              <a href="#scripts" class="sidebar-link" data-page="scripts">
-                <i class="fas fa-code"></i>
-                <span>Scripts</span>
-              </a>
-            </li>
-            <li class="sidebar-item">
-              <a href="https://trollchipss.netlify.app" class="sidebar-link">
-                <i class="fas fa-arrow-left"></i>
-                <span>Voltar</span>
-              </a>
-            </li>
-          </ul>
-        </div>
-      </div>
-    </aside>
-
-    <!-- Main Content -->
-    <main id="mainContent" class="main-content">
-
-      <!-- Intro Page -->
-      <div id="introPage" class="page active">
-        <section class="intro-section">
-          <div class="container">
-            <div class="section-header">
-              <h2 class="section-title">O que é o TROLLCHIPS?</h2>
-              <p class="section-subtitle">Uma plataforma simples e prática para você acessar automatizações e scripts úteis para seus estudos.</p>
-            </div>
-          </div>
-        </section>
-      </div>
-
-      <!-- Scripts Page -->
-      <div id="scriptsPage" class="page">
-        <section class="scripts-section">
-          <div class="container">
-            <div class="section-header">
-              <h2 class="section-title">Scripts Disponíveis</h2>
-              <p class="section-subtitle">Clique no botão para acessar cada automação</p>
-            </div>
-
-            <div class="buttons-container">
-              <a href="#" class="button"><i class="fas fa-tasks"></i> TarefaSP</a>
-              <a href="#" class="button"><i class="fas fa-pen-to-square"></i> Redação</a>
-              <a href="#" class="button"><i class="fas fa-graduation-cap"></i> Khan Academy</a>
-              <a href="#" class="button"><i class="fas fa-moon"></i> Expansão Noturno</a>
-              <a href="#" class="button"><i class="fas fa-book"></i> LeiaSP</a>
-              <a href="#" class="button"><i class="fas fa-laptop"></i> Alura</a>
-              <a href="gabarito1dia.html" class="button"><i class="fas fa-book-open"></i> Gabarito 1Dia</a>
-              <a href="https://apostilastrollchipss.netlify.app/" class="button"><i class="fas fa-book-open"></i> Apostilas</a>
-            </div>
-          </div>
-        </section>
-      </div>
-
-    </main>
-
-    <!-- Overlay -->
-    <div id="overlay" class="overlay"></div>
-
-    <!-- Footer -->
-    <footer>
-      © 2025 TROLLCHIPS - Todos os direitos reservados
-    </footer>
-  </div>
-<script>
-  const sidebar = document.getElementById("sidebar");
-const sidebarToggle = document.getElementById("sidebarToggle");
-const mainContent = document.getElementById("mainContent");
-const themeToggle = document.getElementById("themeToggle");
-const body = document.body;
-const pages = document.querySelectorAll(".page");
-const links = document.querySelectorAll(".sidebar-link");
-const loader = document.getElementById("loader");
-const mainApp = document.getElementById("mainApp");
-
-// Loader some depois de 2.5s
-window.addEventListener("load", () => {
-  setTimeout(() => {
-    loader.classList.add("hidden");
-    mainApp.classList.add("active");
-  }, 2500);
-});
-
-// Sidebar toggle
-sidebarToggle.addEventListener("click", () => {
-  sidebar.classList.toggle("active");
-  mainContent.classList.toggle("with-sidebar");
-});
-
-// Tema toggle
-themeToggle.addEventListener("click", () => {
-  if (body.getAttribute("data-theme") === "dark") {
-    body.setAttribute("data-theme", "light");
-  } else {
-    body.setAttribute("data-theme", "dark");
-  }
-});
-
-// Navegação entre páginas
-links.forEach(link => {
-  link.addEventListener("click", e => {
-    if (link.dataset.page) {
-      e.preventDefault();
-      const pageId = link.dataset.page + "Page";
-
-      pages.forEach(p => p.classList.remove("active"));
-      document.getElementById(pageId).classList.add("active");
-
-      links.forEach(l => l.parentElement.classList.remove("active"));
-      link.parentElement.classList.add("active");
+  <style>
+    :root {
+      --bg-dark: #000;
+      --bg-light: #111;
+      --text-primary: #fff;
+      --text-secondary: #aaa;
+      --card-bg: #111;
+      --border-color: #222;
+      --radius: 0.75rem;
+      --transition: 0.3s ease;
     }
-  });
-});
-</script>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: "Urbanist", sans-serif;
+      background-color: var(--bg-dark);
+      color: var(--text-primary);
+      line-height: 1.6;
+    }
+    a {
+      text-decoration: none;
+      color: inherit;
+    }
+    header {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      padding: 1rem 2rem;
+      background: rgba(0,0,0,0.9);
+      border-bottom: 1px solid var(--border-color);
+      z-index: 1000;
+    }
+    nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .logo {
+      font-size: 1.5rem;
+      font-weight: 800;
+    }
+    .nav-links {
+      list-style: none;
+      display: flex;
+      gap: 2rem;
+    }
+    .nav-links a {
+      color: var(--text-secondary);
+      font-weight: 500;
+      transition: var(--transition);
+    }
+    .nav-links a:hover {
+      color: var(--text-primary);
+    }
+    /* Visitor Counter */
+    .visitor-counter {
+      position: fixed;
+      top: 90px;
+      right: 20px;
+      background: #111;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius);
+      padding: 8px 12px;
+      font-size: 14px;
+      z-index: 999;
+    }
+    /* Hero */
+    .hero {
+      padding: 180px 20px 100px;
+      text-align: center;
+      background: #000;
+    }
+    .hero h1 {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+      color: #fff;
+    }
+    .hero p {
+      color: var(--text-secondary);
+      font-size: 1.2rem;
+      margin-bottom: 2rem;
+    }
+    .cta-buttons {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .btn {
+      padding: 12px 24px;
+      border-radius: var(--radius);
+      border: 1px solid #fff;
+      color: #fff;
+      font-weight: 600;
+      transition: var(--transition);
+    }
+    .btn:hover {
+      background: #fff;
+      color: #000;
+    }
+    /* Scripts Section */
+    .scripts-section {
+      padding: 100px 20px;
+      background: var(--bg-light);
+    }
+    .section-header {
+      text-align: center;
+      margin-bottom: 60px;
+    }
+    .section-header h2 {
+      font-size: 2.5rem;
+      margin-bottom: 10px;
+    }
+    .section-header p {
+      color: var(--text-secondary);
+    }
+    .scripts-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 2rem;
+    }
+    .script-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      transition: var(--transition);
+    }
+    .script-card:hover {
+      transform: translateY(-5px);
+      border-color: #fff;
+    }
+    .card-title {
+      font-size: 1.5rem;
+      margin-bottom: 10px;
+    }
+    .card-description {
+      color: var(--text-secondary);
+      margin-bottom: 20px;
+    }
+    .card-button {
+      display: inline-block;
+      padding: 10px 15px;
+      border: 1px solid #fff;
+      border-radius: var(--radius);
+      font-weight: 600;
+      transition: var(--transition);
+    }
+    .card-button:hover {
+      background: #fff;
+      color: #000;
+    }
+    /* Footer */
+    footer {
+      padding: 40px 20px;
+      text-align: center;
+      background: #000;
+      border-top: 1px solid var(--border-color);
+      color: var(--text-secondary);
+    }
+    footer strong {
+      color: #fff;
+    }
+    @media (max-width: 768px) {
+      .nav-links { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Visitor Counter -->
+  <div class="visitor-counter">
+    <i class="fas fa-eye"></i> <span id="visitor-count">0</span> visitas
+  </div>
 
+  <!-- Header -->
+  <header>
+    <nav>
+      <div class="logo">TROLLCHIPS</div>
+      <ul class="nav-links">
+        <li><a href="#scripts">Scripts</a></li>
+        <li><a href="#">Contato</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <!-- Hero -->
+  <section class="hero">
+    <h1>Bem-vindo ao TROLLCHIPS</h1>
+    <p>Sua central de scripts inteligentes para plataformas de estudo.</p>
+    <div class="cta-buttons">
+      <a href="#scripts" class="btn">Ver Scripts</a>
+      <a href="https://discord.gg/" target="_blank" class="btn">Comunidade</a>
+    </div>
+  </section>
+
+  <!-- Scripts Section -->
+  <section id="scripts" class="scripts-section">
+    <div class="section-header">
+      <h2>Scripts Disponíveis</h2>
+      <p>Escolha abaixo a ferramenta que deseja usar</p>
+    </div>
+    <div class="scripts-grid">
+      <div class="script-card">
+        <h3 class="card-title">Tarefas SP</h3>
+        <p class="card-description">Automatiza suas tarefas da Sala do Futuro.</p>
+        <a href="https://tarefas.bishacks.site/" target="_blank" class="card-button">Acessar</a>
+      </div>
+      <div class="script-card">
+        <h3 class="card-title">Redação</h3>
+        <p class="card-description">Corrige e gera redações automaticamente.</p>
+        <a href="https://redacao.cupiditys.lol/" target="_blank" class="card-button">Acessar</a>
+      </div>
+      <div class="script-card">
+        <h3 class="card-title">KhanWare</h3>
+        <p class="card-description">Finaliza atividades da Khan Academy.</p>
+        <a href="https://khanware.space/" target="_blank" class="card-button">Acessar</a>
+      </div>
+      <div class="script-card">
+        <h3 class="card-title">Expansão</h3>
+        <p class="card-description">Script para a plataforma Expansão.</p>
+        <a href="https://expansao.cmsphacks.xyz/" target="_blank" class="card-button">Acessar</a>
+      </div>
+      <div class="script-card">
+        <h3 class="card-title">Prepara SP</h3>
+        <p class="card-description">Automatiza questões do Prepara SP.</p>
+        <a href="https://crimsonstrauss.xyz/preparasp" target="_blank" class="card-button">Acessar</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <p>© <strong>TROLLCHIPS</strong> 2025 - Todos os direitos reservados.</p>
+  </footer>
+
+  <script>
+    // Contador de visitantes
+    const counterElement = document.getElementById('visitor-count');
+    fetch('https://api.countapi.xyz/hit/trollchips/visitas')
+      .then(res => res.json())
+      .then(data => counterElement.textContent = data.value);
+  </script>
 </body>
   </html>
