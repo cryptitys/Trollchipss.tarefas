@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TROLLCHIPS</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="shortcut icon" href="logo-trollchips.png" type="image/png">
+  <link rel="stylesheet" href="src/css/styles.css">
+</head>
+<body data-theme="dark">
+
+  <!-- Loader / Intro -->
+  <div id="loader" class="loader">
+    <div class="loader-content">
+      <img src="logo-trollchips.png" alt="Logo Trollchips" class="loader-logo">
+      <h1 class="loader-title">Bem-vindo ao TROLLCHIPS</h1>
+      <p class="loader-subtitle">Automatizações, Scripts e muito mais</p>
+    </div>
+  </div>
+
+  <!-- App -->
+  <div id="mainApp" class="main-app">
+    <!-- Navbar -->
+    <nav class="navbar">
+      <div class="nav-container">
+        <div class="nav-left">
+          <button id="sidebarToggle" class="sidebar-toggle"><i class="fas fa-bars"></i></button>
+          <a href="#" class="logo">
+            <img src="logo-trollchips.png" alt="Logo Trollchips" style="width: 32px; height: 32px; object-fit: contain; margin-right: 8px;">
+            <span>TROLLCHIPS</span>
+          </a>
+        </div>
+        <div class="nav-right">
+          <button id="themeToggle" class="theme-toggle"><i class="fas fa-moon"></i></button>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Sidebar -->
+    <aside id="sidebar" class="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-logo">
+          <i class="fas fa-book"></i>
+          <span>Menu</span>
+        </div>
+      </div>
+      <div class="sidebar-content">
+        <div class="sidebar-section">
+          <h3 class="sidebar-section-title">Principal</h3>
+          <ul class="sidebar-menu">
+            <li class="sidebar-item active">
+              <a href="#scripts" class="sidebar-link" data-page="scripts">
+                <i class="fas fa-code"></i>
+                <span>Scripts</span>
+              </a>
+            </li>
+            <li class="sidebar-item">
+              <a href="https://trollchipss.netlify.app" class="sidebar-link">
+                <i class="fas fa-arrow-left"></i>
+                <span>Voltar</span>
+              </a>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main id="mainContent" class="main-content">
+      <!-- Scripts Page -->
+      <div id="scriptsPage" class="page active">
+        <section class="scripts-section">
+          <div class="container">
+            <div class="section-header">
+              <h2 class="section-title">Scripts Disponíveis</h2>
+              <p class="section-subtitle">Escolha uma automatização abaixo</p>
+            </div>
+
+            <div class="buttons-container">
+              <a href="#" class="button"><i class="fas fa-tasks"></i> TarefaSP</a>
+              <a href="#" class="button"><i class="fas fa-pen-to-square"></i> Redação</a>
+              <a href="#" class="button"><i class="fas fa-graduation-cap"></i> Khan Academy</a>
+              <a href="#" class="button"><i class="fas fa-moon"></i> Expansão Noturno</a>
+              <a href="#" class="button"><i class="fas fa-book"></i> LeiaSP</a>
+              <a href="#" class="button"><i class="fas fa-laptop"></i> Alura</a>
+              <a href="gabarito1dia.html" class="button"><i class="fas fa-book-open"></i> Gabarito 1Dia</a>
+              <a href="https://apostilastrollchipss.netlify.app/" class="button"><i class="fas fa-book-open"></i> Apostilas</a>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <!-- Overlay -->
+    <div id="overlay" class="overlay"></div>
+
+    <!-- Footer -->
+    <footer>
+      © 2025 TROLLCHIPS - Todos os direitos reservados
+    </footer>
+  </div>
+
+  <!-- Script -->
+  <script src="src/script/script.js"></script>
+</body>
+  </html>
