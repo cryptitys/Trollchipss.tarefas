@@ -7,48 +7,47 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
     :root {
-      --bg-dark: #000;
-      --bg-light: #111;
+      --bg-dark: #0a0a0a;
+      --bg-mid: #111;
+      --bg-light: #181818;
       --text-primary: #fff;
-      --text-secondary: #aaa;
-      --card-bg: #111;
+      --text-secondary: #bbb;
       --border-color: #222;
       --radius: 0.75rem;
       --transition: 0.3s ease;
     }
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       font-family: "Urbanist", sans-serif;
       background-color: var(--bg-dark);
       color: var(--text-primary);
       line-height: 1.6;
     }
-    a {
-      text-decoration: none;
-      color: inherit;
-    }
+    a { text-decoration: none; color: inherit; }
+
+    /* Header */
     header {
       position: fixed;
-      top: 0;
-      left: 0;
+      top: 0; left: 0;
       width: 100%;
       padding: 1rem 2rem;
-      background: rgba(0,0,0,0.9);
+      background: rgba(10,10,10,0.95);
       border-bottom: 1px solid var(--border-color);
       z-index: 1000;
-    }
-    nav {
       display: flex;
       justify-content: space-between;
       align-items: center;
     }
     .logo {
+      display: flex;
+      align-items: center;
       font-size: 1.5rem;
       font-weight: 800;
+    }
+    .logo img {
+      height: 35px;
+      margin-right: 10px;
+      filter: brightness(200%);
     }
     .nav-links {
       list-style: none;
@@ -63,28 +62,29 @@
     .nav-links a:hover {
       color: var(--text-primary);
     }
+
     /* Visitor Counter */
     .visitor-counter {
       position: fixed;
       top: 90px;
       right: 20px;
-      background: #111;
+      background: var(--bg-mid);
       border: 1px solid var(--border-color);
       border-radius: var(--radius);
       padding: 8px 12px;
       font-size: 14px;
       z-index: 999;
     }
+
     /* Hero */
     .hero {
       padding: 180px 20px 100px;
       text-align: center;
-      background: #000;
+      background: var(--bg-mid);
     }
     .hero h1 {
       font-size: 3rem;
       margin-bottom: 1rem;
-      color: #fff;
     }
     .hero p {
       color: var(--text-secondary);
@@ -109,6 +109,7 @@
       background: #fff;
       color: #000;
     }
+
     /* Scripts Section */
     .scripts-section {
       padding: 100px 20px;
@@ -131,7 +132,7 @@
       gap: 2rem;
     }
     .script-card {
-      background: var(--card-bg);
+      background: var(--bg-mid);
       border: 1px solid var(--border-color);
       border-radius: var(--radius);
       padding: 1.5rem;
@@ -140,6 +141,7 @@
     .script-card:hover {
       transform: translateY(-5px);
       border-color: #fff;
+      box-shadow: 0 0 15px rgba(255,255,255,0.1);
     }
     .card-title {
       font-size: 1.5rem;
@@ -161,17 +163,17 @@
       background: #fff;
       color: #000;
     }
+
     /* Footer */
     footer {
       padding: 40px 20px;
       text-align: center;
-      background: #000;
+      background: var(--bg-dark);
       border-top: 1px solid var(--border-color);
       color: var(--text-secondary);
     }
-    footer strong {
-      color: #fff;
-    }
+    footer strong { color: #fff; }
+
     @media (max-width: 768px) {
       .nav-links { display: none; }
     }
@@ -185,13 +187,13 @@
 
   <!-- Header -->
   <header>
-    <nav>
-      <div class="logo">TROLLCHIPS</div>
-      <ul class="nav-links">
-        <li><a href="#scripts">Scripts</a></li>
-        <li><a href="#">Contato</a></li>
-      </ul>
-    </nav>
+    <div class="logo">
+      <img src="logo.png" alt="Logo"> TROLLCHIPS
+    </div>
+    <ul class="nav-links">
+      <li><a href="#scripts">Scripts</a></li>
+      <li><a href="#">Contato</a></li>
+    </ul>
   </header>
 
   <!-- Hero -->
@@ -252,4 +254,4 @@
       .then(data => counterElement.textContent = data.value);
   </script>
 </body>
-  </html>
+          </html>
