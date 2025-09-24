@@ -1,0 +1,1302 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TROLLCHIPS • Central de Scripts</title>
+  <link href="https://fonts.googleapis.com/css2?family=Urbanist:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="shortcut icon" href="logo-trollchips.png" type="image/png">
+  <style>
+    :root {
+      --bg-dark: #0a0a0a;
+      --bg-light: #1a1a1a;
+      --primary: #00eaff;
+      --primary-dark: #00c0cc;
+      --text-primary: #ffffff;
+      --text-secondary: #b0b0b0;
+      --card-bg: rgba(255, 255, 255, 0.05);
+      --border-color: rgba(255, 255, 255, 0.1);
+      --spacing-xs: 0.25rem;
+      --spacing-sm: 0.5rem;
+      --spacing-md: 1rem;
+      --spacing-lg: 1.5rem;
+      --spacing-xl: 2rem;
+      --spacing-2xl: 3rem;
+      --spacing-3xl: 4rem;
+      --spacing-4xl: 6rem;
+      --font-family: "Urbanist", sans-serif;
+      --radius-sm: 0.5rem;
+      --radius-md: 0.75rem;
+      --radius-lg: 1rem;
+      --radius-xl: 1.5rem;
+      --radius-full: 9999px;
+      --shadow-primary: 0 4px 15px rgba(0, 234, 255, 0.3);
+      --transition-normal: 0.3s ease;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-primary);
+      font-family: var(--font-family);
+      line-height: 1.6;
+      overflow-x: hidden;
+      background-image: 
+          linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+      background-size: 25px 25px;
+    }
+
+    a {
+      text-decoration: none;
+      color: inherit;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 20px;
+    }
+
+    /* Header Styles */
+    header {
+      background: rgba(15, 15, 15, 0.9);
+      padding: 1rem 0;
+      position: fixed;
+      width: 100%;
+      top: 0;
+      z-index: 1000;
+      border-bottom: 1px solid var(--border-color);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
+    }
+
+    nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .logo {
+      font-size: 28px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      color: var(--text-primary);
+    }
+
+    .logo img {
+      height: 40px;
+      margin-right: 10px;
+      border-radius: 8px;
+      border: 2px solid var(--primary);
+      box-shadow: 0 0 10px rgba(0, 234, 255, 0.4);
+    }
+
+    .nav-links {
+      display: flex;
+      list-style: none;
+    }
+
+    .nav-links li {
+      margin-left: 30px;
+    }
+
+    .nav-links a {
+      color: var(--text-primary);
+      font-weight: 500;
+      transition: 0.3s;
+      font-size: 15px;
+      padding: 0.5rem 1rem;
+      border-radius: var(--radius-sm);
+    }
+
+    .nav-links a:hover {
+      color: var(--primary);
+      background-color: rgba(255, 255, 255, 0.1);
+      transform: translateY(-2px);
+    }
+
+    .hamburger {
+      display: none;
+      flex-direction: column;
+      cursor: pointer;
+    }
+
+    .hamburger span {
+      width: 25px;
+      height: 3px;
+      background: var(--text-primary);
+      margin: 3px 0;
+      transition: 0.3s;
+    }
+
+    /* Visitor Counter */
+    .visitor-counter {
+      position: fixed;
+      top: 100px;
+      right: 20px;
+      background: rgba(15, 15, 15, 0.9);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: var(--radius-md);
+      padding: 10px 15px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      z-index: 999;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+      transition: all var(--transition-normal);
+    }
+
+    .visitor-counter:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+    }
+
+    .visitor-counter i {
+      color: var(--primary);
+    }
+
+    /* Hero Section */
+    .hero {
+      padding: 180px 0 100px;
+      text-align: center;
+      background: radial-gradient(ellipse at center, rgba(0, 234, 255, 0.05) 0%, transparent 70%);
+      position: relative;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .hero-content {
+      max-width: 800px;
+      z-index: 10;
+    }
+
+    .hero h1 {
+      font-size: clamp(2.5rem, 5vw, 4rem);
+      font-weight: 800;
+      margin-bottom: 20px;
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero h2 {
+      font-size: 22px;
+      color: var(--text-secondary);
+      margin-bottom: 30px;
+      font-weight: 400;
+    }
+
+    .hero p {
+      color: var(--text-secondary);
+      font-size: 18px;
+      line-height: 1.6;
+      margin-bottom: 40px;
+    }
+
+    .cta-buttons {
+      display: flex;
+      gap: 20px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      padding: 15px 30px;
+      border-radius: var(--radius-full);
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      transition: all var(--transition-normal);
+    }
+
+    .btn-primary {
+      background-color: var(--primary);
+      color: #000;
+      box-shadow: var(--shadow-primary);
+    }
+
+    .btn-primary:hover {
+      background-color: var(--primary-dark);
+      transform: translateY(-3px);
+      box-shadow: 0 10px 25px rgba(0, 234, 255, 0.4);
+    }
+
+    .btn-secondary {
+      background-color: transparent;
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      color: var(--text-primary);
+      backdrop-filter: blur(10px);
+    }
+
+    .btn-secondary:hover {
+      background-color: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.3);
+      transform: translateY(-3px);
+    }
+
+    /* Scripts Section */
+    .scripts-section {
+      padding: 100px 0;
+      background: linear-gradient(180deg, var(--bg-dark) 0%, var(--bg-light) 100%);
+      position: relative;
+    }
+
+    .section-header {
+      text-align: center;
+      margin-bottom: 60px;
+    }
+
+    .section-tag {
+      display: inline-block;
+      background-color: rgba(0, 234, 255, 0.1);
+      border: 1px solid rgba(0, 234, 255, 0.3);
+      color: var(--primary);
+      padding: var(--spacing-sm) var(--spacing-md);
+      border-radius: var(--radius-full);
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 20px;
+    }
+
+    .section-title {
+      font-size: clamp(2rem, 4vw, 3.5rem);
+      font-weight: 700;
+      margin-bottom: 20px;
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .section-description {
+      color: var(--text-secondary);
+      font-size: 18px;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    .scripts-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 30px;
+      margin-top: 50px;
+    }
+
+    .script-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-xl);
+      padding: 30px;
+      transition: all var(--transition-normal);
+      backdrop-filter: blur(10px);
+      position: relative;
+      overflow: hidden;
+      cursor: pointer;
+    }
+
+    .script-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, var(--primary), var(--primary-dark));
+      transform: scaleX(0);
+      transform-origin: left;
+      transition: transform 0.3s ease;
+    }
+
+    .script-card:hover {
+      transform: translateY(-10px);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+      border-color: rgba(0, 234, 255, 0.3);
+    }
+
+    .script-card:hover::before {
+      transform: scaleX(1);
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .card-category {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+      letter-spacing: 0.5px;
+    }
+
+    .card-status {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      padding: 4px 12px;
+      border-radius: var(--radius-md);
+    }
+
+    .status-ativo {
+      background-color: rgba(0, 234, 255, 0.2);
+      color: var(--primary);
+    }
+
+    .status-beta {
+      background-color: rgba(200, 200, 200, 0.2);
+      color: #ccc;
+    }
+
+    .status-offline {
+      background-color: rgba(100, 100, 100, 0.2);
+      color: #999;
+    }
+
+    .card-title {
+      font-size: 24px;
+      font-weight: 700;
+      margin-bottom: 15px;
+      color: var(--text-primary);
+    }
+
+    .card-description {
+      color: var(--text-secondary);
+      margin-bottom: 25px;
+      line-height: 1.6;
+    }
+
+    .card-info {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 25px;
+    }
+
+    .card-author, .card-date {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--text-secondary);
+      font-size: 14px;
+    }
+
+    .card-button {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      width: 100%;
+      padding: 12px;
+      background-color: rgba(0, 234, 255, 0.1);
+      border: 1px solid rgba(0, 234, 255, 0.3);
+      border-radius: var(--radius-md);
+      color: var(--primary);
+      font-weight: 600;
+      transition: all var(--transition-normal);
+    }
+
+    .script-card:hover .card-button {
+      background-color: var(--primary);
+      color: #000;
+    }
+
+    /* Floating elements */
+    .floating-icon {
+      position: absolute;
+      font-size: 30px;
+      color: var(--text-primary);
+      opacity: 0.15;
+      animation: move 20s linear infinite;
+      z-index: -1;
+    }
+
+    @keyframes move {
+      0% { transform: translateY(-100px) translateX(0); }
+      100% { transform: translateY(110vh) translateX(50vw); }
+    }
+
+    /* Particles */
+    #particles-canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: -1;
+      pointer-events: none;
+    }
+
+    /* Modal */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 2000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.7);
+      backdrop-filter: blur(6px);
+      justify-content: center;
+      align-items: center;
+    }
+
+    .modal-content {
+      background: #151515;
+      padding: 30px;
+      border-radius: 16px;
+      text-align: center;
+      color: var(--primary);
+      max-width: 400px;
+      width: 90%;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.5);
+      position: relative;
+      border: 1px solid rgba(0, 234, 255, 0.3);
+    }
+
+    .close {
+      position: absolute;
+      top: 15px;
+      right: 20px;
+      font-size: 1.5rem;
+      cursor: pointer;
+      color: #fff;
+    }
+
+    .modal-content button {
+      background: var(--primary);
+      color: #000;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 12px;
+      cursor: pointer;
+      margin-top: 15px;
+      transition: 0.3s;
+      font-weight: 600;
+    }
+
+    .modal-content button:hover {
+      background: var(--primary-dark);
+    }
+
+    .modal-content input {
+      width: 80%;
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 8px;
+      border: none;
+      background: rgba(255, 255, 255, 0.1);
+      color: white;
+    }
+
+    .modal-content input::placeholder {
+      color: #aaa;
+    }
+
+    /* Footer */
+    footer {
+      background: linear-gradient(145deg, #0a0a0a, var(--bg-dark));
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 60px 0 30px;
+    }
+
+    .footer-content {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 50px;
+      margin-bottom: 40px;
+    }
+
+    .footer-brand {
+      max-width: 400px;
+    }
+
+    .footer-logo {
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 24px;
+      font-weight: 700;
+    }
+
+    .footer-logo img {
+      height: 40px;
+      border-radius: 8px;
+      border: 2px solid var(--primary);
+      box-shadow: 0 0 10px rgba(0, 234, 255, 0.4);
+    }
+
+    .footer-description {
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+
+    .footer-links {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 30px;
+    }
+
+    .link-group h4 {
+      color: var(--text-primary);
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 20px;
+    }
+
+    .link-group ul {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .link-group a {
+      color: var(--text-secondary);
+      transition: color var(--transition-normal);
+    }
+
+    .link-group a:hover {
+      color: var(--primary);
+    }
+
+    .footer-bottom {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-top: 30px;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .footer-credits {
+      color: var(--text-secondary);
+    }
+
+    .footer-credits strong {
+      color: var(--primary);
+      font-weight: 600;
+    }
+
+    .social-links {
+      display: flex;
+      gap: 15px;
+    }
+
+    .social-link {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--text-secondary);
+      padding: 8px 12px;
+      border-radius: var(--radius-sm);
+      transition: all var(--transition-normal);
+    }
+
+    .social-link:hover {
+      background-color: rgba(255, 255, 255, 0.1);
+      color: var(--text-primary);
+    }
+
+    /* Responsive Design */
+    @media (max-width: 968px) {
+      .nav-links {
+        display: none;
+      }
+      .hamburger {
+        display: flex;
+      }
+      .footer-content {
+        grid-template-columns: 1fr;
+        gap: 40px;
+      }
+      .footer-bottom {
+        flex-direction: column;
+        gap: 20px;
+        text-align: center;
+      }
+      .visitor-counter {
+        top: 90px;
+        right: 10px;
+        font-size: 12px;
+        padding: 8px 12px;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .hero {
+        padding: 150px 0 80px;
+      }
+      .cta-buttons {
+        flex-direction: column;
+      }
+      .scripts-grid {
+        grid-template-columns: 1fr;
+      }
+      .footer-links {
+        grid-template-columns: 1fr;
+        gap: 30px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .hero h1 {
+        font-size: 2.5rem;
+      }
+      .hero p {
+        font-size: 16px;
+      }
+      .btn {
+        padding: 12px 24px;
+      }
+      .visitor-counter {
+        position: relative;
+        top: 0;
+        right: 0;
+        margin: 10px auto;
+        width: fit-content;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Particles Background -->
+  <canvas id="particles-canvas"></canvas>
+  
+  <!-- Floating Icons -->
+  <i class="fab fa-js floating-icon" style="top:10%;left:20%;animation-duration:25s;"></i>
+  <i class="fab fa-python floating-icon" style="top:50%;left:10%;animation-duration:30s;"></i>
+  <i class="fab fa-chrome floating-icon" style="top:20%;left:80%;animation-duration:22s;"></i>
+  <i class="fas fa-code floating-icon" style="top:70%;left:60%;animation-duration:28s;"></i>
+  <i class="fas fa-terminal floating-icon" style="top:30%;left:40%;animation-duration:24s;"></i>
+  <i class="fab fa-github floating-icon" style="top:80%;left:25%;animation-duration:26s;"></i>
+  
+  <!-- Visitor Counter -->
+  <div class="visitor-counter">
+    <i class="fas fa-eye"></i>
+    <span id="visitor-count">Carregando...</span>
+  </div>
+  
+  <!-- Header -->
+  <header>
+    <div class="container">
+      <nav>
+        <a href="#" class="logo">
+          <img src="logo-trollchips.png" alt="TROLLCHIPS">
+          TROLLCHIPS
+        </a>
+        <ul class="nav-links">
+          <li><a href="#scripts">Scripts</a></li>
+          <li><a href="https://trollchipss.netlify.app" target="_blank">Site Principal</a></li>
+        </ul>
+        <div class="hamburger">
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
+      </nav>
+    </div>
+  </header>
+  
+  <!-- Hero Section -->
+  <section class="hero">
+    <div class="container">
+      <div class="hero-content">
+        <h1>TROLLCHIPS Scripts</h1>
+        <h2>AUTOMAÇÃO EDUCACIONAL</h2>
+        <p>
+          Acesse todas as plataformas com scripts da TROLLCHIPS. 
+          Ferramentas desenvolvidas para otimizar sua experiência na Sala do Futuro e outras plataformas educacionais.
+        </p>
+        <div class="cta-buttons">
+          <a href="#scripts" class="btn btn-primary">
+            <i class="fas fa-code"></i> Ver Scripts
+          </a>
+          <a href="https://trollchipss.netlify.app" target="_blank" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Voltar ao Site Principal
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+  
+  <!-- Scripts Section -->
+  <section id="scripts" class="scripts-section">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">
+          <i class="fas fa-bolt"></i> Scripts Disponíveis
+        </span>
+        <h2 class="section-title">Ferramentas Inteligentes</h2>
+        <p class="section-description">
+          Nossa suíte completa de automações desenvolvidas com tecnologia de ponta para revolucionar 
+          sua experiência de aprendizado na Sala do Futuro
+        </p>
+      </div>
+      <div class="scripts-grid">
+        <!-- Script 1 -->
+        <div class="script-card" data-produto="TarefaSP">
+          <div class="card-header">
+            <span class="card-category">Tarefas</span>
+            <span class="card-status status-ativo">Ativo</span>
+          </div>
+          <h3 class="card-title">TarefaSP</h3>
+          <p class="card-description">
+            Sistema de gerenciamento de tarefas com automações para organizar e cumprir 
+            atividades escolares de forma eficiente.
+          </p>
+          <div class="card-info">
+            <div class="card-author">
+              <i class="fas fa-user"></i> Desenvolvido por: TROLLCHIPS
+            </div>
+            <div class="card-date">
+              <i class="fas fa-calendar"></i> Atualizado: 2025
+            </div>
+          </div>
+          <div class="card-button">
+            <i class="fas fa-shopping-cart"></i> Adquirir Script
+          </div>
+        </div>
+        
+        <!-- Script 2 -->
+        <div class="script-card" data-produto="Redação">
+          <div class="card-header">
+            <span class="card-category">Redação</span>
+            <span class="card-status status-ativo">Ativo</span>
+          </div>
+          <h3 class="card-title">Redação</h3>
+          <p class="card-description">
+            Ambiente para produção de redações com correções automáticas e 
+            sugestões de melhorias textuais.
+          </p>
+          <div class="card-info">
+            <div class="card-author">
+              <i class="fas fa-user"></i> Desenvolvido por: TROLLCHIPS
+            </div>
+            <div class="card-date">
+              <i class="fas fa-calendar"></i> Atualizado: 2025
+            </div>
+          </div>
+          <div class="card-button">
+            <i class="fas fa-shopping-cart"></i> Adquirir Script
+          </div>
+        </div>
+        
+        <!-- Script 3 -->
+        <div class="script-card" data-produto="Khan Academy">
+          <div class="card-header">
+            <span class="card-category">Educação</span>
+            <span class="card-status status-ativo">Ativo</span>
+          </div>
+          <h3 class="card-title">Khan Academy</h3>
+          <p class="card-description">
+            Scripts para a plataforma Khan Academy, facilitando a conclusão de exercícios e atividades.
+          </p>
+          <div class="card-info">
+            <div class="card-author">
+              <i class="fas fa-user"></i> Desenvolvido por: TROLLCHIPS
+            </div>
+            <div class="card-date">
+              <i class="fas fa-calendar"></i> Atualizado: 2025
+            </div>
+          </div>
+          <div class="card-button">
+            <i class="fas fa-shopping-cart"></i> Adquirir Script
+          </div>
+        </div>
+        
+        <!-- Script 4 -->
+        <div class="script-card" data-produto="Expansão Noturno">
+          <div class="card-header">
+            <span class="card-category">Expansão</span>
+            <span class="card-status status-ativo">Ativo</span>
+          </div>
+          <h3 class="card-title">Expansão Noturno</h3>
+          <p class="card-description">
+            Plataforma de expansão com scripts para facilitar o acesso e 
+            aproveitamento de conteúdos educacionais.
+          </p>
+          <div class="card-info">
+            <div class="card-author">
+              <i class="fas fa-user"></i> Desenvolvido por: TROLLCHIPS
+            </div>
+            <div class="card-date">
+              <i class="fas fa-calendar"></i> Atualizado: 2025
+            </div>
+          </div>
+          <div class="card-button">
+            <i class="fas fa-shopping-cart"></i> Adquirir Script
+          </div>
+        </div>
+        
+        <!-- Script 5 -->
+        <div class="script-card" data-produto="LeiaSP">
+          <div class="card-header">
+            <span class="card-category">Leitura</span>
+            <span class="card-status status-ativo">Ativo</span>
+          </div>
+          <h3 class="card-title">LeiaSP</h3>
+          <p class="card-description">
+            Plataforma de leitura com scripts para facilitar o acesso e compreensão de textos. 
+            Ideal para estudos e pesquisas.
+          </p>
+          <div class="card-info">
+            <div class="card-author">
+              <i class="fas fa-user"></i> Desenvolvido por: TROLLCHIPS
+            </div>
+            <div class="card-date">
+              <i class="fas fa-calendar"></i> Atualizado: 2025
+            </div>
+          </div>
+          <div class="card-button">
+            <i class="fas fa-shopping-cart"></i> Adquirir Script
+          </div>
+        </div>
+        
+        <!-- Script 6 -->
+        <div class="script-card" data-produto="Alura">
+          <div class="card-header">
+            <span class="card-category">Educação</span>
+            <span class="card-status status-ativo">Ativo</span>
+          </div>
+          <h3 class="card-title">Alura</h3>
+          <p class="card-description">
+            Scripts para a plataforma Alura, facilitando a conclusão de cursos e 
+            atividades de programação.
+          </p>
+          <div class="card-info">
+            <div class="card-author">
+              <i class="fas fa-user"></i> Desenvolvido por: TROLLCHIPS
+            </div>
+            <div class="card-date">
+              <i class="fas fa-calendar"></i> Atualizado: 2025
+            </div>
+          </div>
+          <div class="card-button">
+            <i class="fas fa-shopping-cart"></i> Adquirir Script
+          </div>
+        </div>
+        
+        <!-- Script 7 -->
+        <div class="script-card">
+          <div class="card-header">
+            <span class="card-category">Estudos</span>
+            <span class="card-status status-ativo">Ativo</span>
+          </div>
+          <h3 class="card-title">Apostilas</h3>
+          <p class="card-description">
+            Biblioteca digital com materiais de estudo e scripts para facilitar 
+            o aprendizado de diversos conteúdos.
+          </p>
+          <div class="card-info">
+            <div class="card-author">
+              <i class="fas fa-user"></i> Desenvolvido por: TROLLCHIPS
+            </div>
+            <div class="card-date">
+              <i class="fas fa-calendar"></i> Atualizado: 2025
+            </div>
+          </div>
+          <a href="https://apostilastrollchipss.netlify.app/" target="_blank" class="card-button">
+            <i class="fas fa-external-link-alt"></i> Acessar Apostilas
+          </a>
+        </div>
+        
+        <!-- Script 8 -->
+        <div class="script-card">
+          <div class="card-header">
+            <span class="card-category">Gabarito</span>
+            <span class="card-status status-ativo">Ativo</span>
+          </div>
+          <h3 class="card-title">Gabarito 1Dia</h3>
+          <p class="card-description">
+            Sistema de gabaritos para facilitar a correção de provas e exercícios.
+          </p>
+          <div class="card-info">
+            <div class="card-author">
+              <i class="fas fa-user"></i> Desenvolvido por: TROLLCHIPS
+            </div>
+            <div class="card-date">
+              <i class="fas fa-calendar"></i> Atualizado: 2025
+            </div>
+          </div>
+          <a href="gabarito1dia.html" class="card-button">
+            <i class="fas fa-external-link-alt"></i> Acessar Gabarito
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+  
+  <!-- Modal -->
+  <div id="modalTemplate" class="modal">
+    <div class="modal-content">
+      <span class="close">&times;</span>
+      <h2 class="modal-title"></h2>
+      <p class="extra-message" style="display:none;"></p>
+      <input type="text" class="raInput" placeholder="RA ex: 0001133557359SP" style="display:none;">
+      <input type="password" class="senhaInput" placeholder="Senha" style="display:none;">
+      <button class="continueBtn" style="display:none;">Continuar</button>
+      <button class="finalizeBtn" style="display:none;">Finalizar</button>
+    </div>
+  </div>
+  
+  <!-- Footer -->
+  <footer>
+    <div class="container">
+      <div class="footer-content">
+        <div class="footer-brand">
+          <div class="footer-logo">
+            <img src="logo-trollchips.png" alt="TROLLCHIPS">
+            TROLLCHIPS
+          </div>
+          <p class="footer-description">
+            Ferramentas desenvolvidas para otimizar a experiência na Sala do Futuro e outras plataformas educacionais.
+          </p>
+        </div>
+        <div class="footer-links">
+          <div class="link-group">
+            <h4>Recursos</h4>
+            <ul>
+              <li><a href="#scripts">Scripts</a></li>
+              <li><a href="https://trollchipss.netlify.app" target="_blank">Site Principal</a></li>
+            </ul>
+          </div>
+          <div class="link-group">
+            <h4>Produtos</h4>
+            <ul>
+              <li><a href="#" data-produto="TarefaSP">TarefaSP</a></li>
+              <li><a href="#" data-produto="Redação">Redação</a></li>
+              <li><a href="#" data-produto="Khan Academy">Khan Academy</a></li>
+              <li><a href="#" data-produto="Expansão Noturno">Expansão Noturno</a></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <div class="footer-credits">
+          <p>© 2025 <strong>TROLLCHIPS</strong> - Todos os direitos reservados</p>
+        </div>
+      </div>
+    </div>
+  </footer>
+  
+  <script>
+    // Efeito de partículas no background
+    function initParticles() {
+      const canvas = document.getElementById('particles-canvas');
+      const ctx = canvas.getContext('2d');
+      let particlesArray = [];
+      
+      // Configurar canvas
+      function setupCanvas() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+      }
+      
+      // Classe Partícula
+      class Particle {
+        constructor() {
+          this.x = Math.random() * canvas.width;
+          this.y = Math.random() * canvas.height;
+          this.size = Math.random() * 2 + 0.5;
+          this.speedX = Math.random() * 1 - 0.5;
+          this.speedY = Math.random() * 1 - 0.5;
+          this.color = `rgba(0, 234, 255, ${Math.random() * 0.3 + 0.1})`;
+        }
+        
+        update() {
+          this.x += this.speedX;
+          this.y += this.speedY;
+          
+          if (this.x > canvas.width || this.x < 0) {
+            this.speedX = -this.speedX;
+          }
+          if (this.y > canvas.height || this.y < 0) {
+            this.speedY = -this.speedY;
+          }
+        }
+        
+        draw() {
+          ctx.fillStyle = this.color;
+          ctx.beginPath();
+          ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+      
+      // Inicializar partículas
+      function init() {
+        particlesArray = [];
+        const numberOfParticles = (canvas.width * canvas.height) / 9000;
+        for (let i = 0; i < numberOfParticles; i++) {
+          particlesArray.push(new Particle());
+        }
+      }
+      
+      // Conectar partículas próximas
+      function connect() {
+        const maxDistance = 100;
+        for (let a = 0; a < particlesArray.length; a++) {
+          for (let b = a; b < particlesArray.length; b++) {
+            const dx = particlesArray[a].x - particlesArray[b].x;
+            const dy = particlesArray[a].y - particlesArray[b].y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            
+            if (distance < maxDistance) {
+              ctx.strokeStyle = `rgba(0, 234, 255, ${1 - distance/maxDistance})`;
+              ctx.lineWidth = 1;
+              ctx.beginPath();
+              ctx.moveTo(particlesArray[a].x, particlesArray[a].y);
+              ctx.lineTo(particlesArray[b].x, particlesArray[b].y);
+              ctx.stroke();
+            }
+          }
+        }
+      }
+      
+      // Animação
+      function animate() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        for (let i = 0; i < particlesArray.length; i++) {
+          particlesArray[i].update();
+          particlesArray[i].draw();
+        }
+        
+        connect();
+        requestAnimationFrame(animate);
+      }
+      
+      // Inicializar e começar animação
+      setupCanvas();
+      init();
+      animate();
+      
+      // Reconfigurar ao redimensionar a janela
+      window.addEventListener('resize', () => {
+        setupCanvas();
+        init();
+      });
+    }
+    
+    // Sistema de Contador de Visitantes Global
+    function initGlobalVisitorCounter() {
+      const counterElement = document.getElementById('visitor-count');
+      const apiUrl = 'https://api.countapi.xyz/hit/trollchips-scripts/visitors';
+      
+      // Função para atualizar o contador
+      function updateCounter() {
+        fetch(apiUrl)
+          .then(response => response.json())
+          .then(data => {
+            if (data && data.value) {
+              counterElement.textContent = data.value.toLocaleString('pt-BR');
+              
+              // Adicionar animação
+              counterElement.style.opacity = '0';
+              counterElement.style.transform = 'translateY(-10px)';
+              
+              setTimeout(() => {
+                counterElement.style.transition = 'all 0.5s ease';
+                counterElement.style.opacity = '1';
+                counterElement.style.transform = 'translateY(0)';
+              }, 100);
+            }
+          })
+          .catch(error => {
+            console.error('Erro ao carregar contador:', error);
+            counterElement.textContent = 'Erro';
+          });
+      }
+      
+      // Atualizar contador imediatamente
+      updateCounter();
+      
+      // Atualizar contador a cada 30 segundos para manter sincronizado
+      setInterval(updateCounter, 30000);
+    }
+    
+    // Menu mobile
+    document.querySelector('.hamburger').addEventListener('click', function() {
+      this.classList.toggle('active');
+      document.querySelector('.nav-links').classList.toggle('active');
+    });
+    
+    // Iniciar partículas e contador quando a página carregar
+    window.addEventListener('load', function() {
+      initParticles();
+      initGlobalVisitorCounter();
+    });
+    
+    // Animação de scroll suave
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+      anchor.addEventListener('click', function (e) {
+        e.preventDefault();
+        const targetId = this.getAttribute('href');
+        if (targetId === '#') return;
+        
+        const targetElement = document.querySelector(targetId);
+        if (targetElement) {
+          targetElement.scrollIntoView({
+            behavior: 'smooth',
+            block: 'start'
+          });
+        }
+      });
+    });
+    
+    // Modal functionality
+    const modal = document.getElementById("modalTemplate");
+    const modalTitle = modal.querySelector(".modal-title");
+    const extraMessage = modal.querySelector(".extra-message");
+    const raInput = modal.querySelector(".raInput");
+    const senhaInput = modal.querySelector(".senhaInput");
+    const continueBtn = modal.querySelector(".continueBtn");
+    const finalizeBtn = modal.querySelector(".finalizeBtn");
+
+    // 💰 Tabela de preços
+    const precos = {
+      "TarefaSP": "Cada tarefa é R$ 1,00",
+      "Redação": "R$ 3,00",
+      "Khan Academy": "R$ 5,00",
+      "Expansão Noturno": "R$ 12,00",
+      "LeiaSP": "R$ 7,00",
+      "Alura": "R$ 10,00"
+    };
+
+    // Abrir modal ao clicar nos cards
+    document.querySelectorAll(".script-card[data-produto]").forEach(card => {
+      card.addEventListener("click", (e) => {
+        if (e.target.tagName === 'A') return; // Não abrir modal se clicar em link
+        
+        const produto = card.dataset.produto;
+        const valor = precos[produto] || "A combinar";
+
+        modal.style.display = "flex";
+        modalTitle.textContent = `Automatização: ${produto}`;
+        extraMessage.style.display = "none";
+        raInput.style.display = "none";
+        senhaInput.style.display = "none";
+        continueBtn.style.display = "none";
+        finalizeBtn.style.display = "none";
+        raInput.value = "";
+        senhaInput.value = "";
+
+        if (produto === "TarefaSP") {
+          // Primeiro passo: só mostra a mensagem de valor
+          extraMessage.textContent = valor;
+          extraMessage.style.display = "block";
+          continueBtn.style.display = "inline-block";
+
+          continueBtn.onclick = () => {
+            extraMessage.style.display = "none";
+            continueBtn.style.display = "none";
+            raInput.style.display = "block";
+            senhaInput.style.display = "block";
+            finalizeBtn.style.display = "inline-block";
+            finalizeBtn.dataset.produto = produto;
+          };
+        } else {
+          // Produtos normais
+          extraMessage.textContent = `Valor: ${valor}`;
+          extraMessage.style.display = "block";
+          raInput.style.display = "block";
+          senhaInput.style.display = "block";
+          finalizeBtn.style.display = "inline-block";
+          finalizeBtn.dataset.produto = produto;
+        }
+      });
+    });
+
+    // Abrir modal pelos links do footer
+    document.querySelectorAll(".link-group a[data-produto]").forEach(link => {
+      link.addEventListener("click", (e) => {
+        e.preventDefault();
+        const produto = link.dataset.produto;
+        const valor = precos[produto] || "A combinar";
+
+        modal.style.display = "flex";
+        modalTitle.textContent = `Automatização: ${produto}`;
+        extraMessage.style.display = "none";
+        raInput.style.display = "none";
+        senhaInput.style.display = "none";
+        continueBtn.style.display = "none";
+        finalizeBtn.style.display = "none";
+        raInput.value = "";
+        senhaInput.value = "";
+
+        if (produto === "TarefaSP") {
+          extraMessage.textContent = valor;
+          extraMessage.style.display = "block";
+          continueBtn.style.display = "inline-block";
+
+          continueBtn.onclick = () => {
+            extraMessage.style.display = "none";
+            continueBtn.style.display = "none";
+            raInput.style.display = "block";
+            senhaInput.style.display = "block";
+            finalizeBtn.style.display = "inline-block";
+            finalizeBtn.dataset.produto = produto;
+          };
+        } else {
+          extraMessage.textContent = `Valor: ${valor}`;
+          extraMessage.style.display = "block";
+          raInput.style.display = "block";
+          senhaInput.style.display = "block";
+          finalizeBtn.style.display = "inline-block";
+          finalizeBtn.dataset.produto = produto;
+        }
+      });
+    });
+
+    // Fechar modal
+    modal.querySelector(".close").onclick = () => modal.style.display = "none";
+    window.onclick = (e) => { if (e.target === modal) modal.style.display = "none"; };
+
+    // Finalizar e enviar WhatsApp
+    finalizeBtn.addEventListener("click", () => {
+      const produto = finalizeBtn.dataset.produto;
+      const ra = raInput.value.trim();
+      const senha = senhaInput.value.trim();
+      const valor = precos[produto] || "A combinar";
+
+      if (!ra || !senha) {
+        alert("Preencha todos os campos!");
+        return;
+      }
+
+      const mensagem = `🛒 Produto: ${produto}
+🆔 RA: ${ra}
+🔑 Senha: ${senha}
+💰 Valor: ${valor}`;
+
+      const numeroWhats = "5516996283054"; 
+      const urlWhats = `https://wa.me/${numeroWhats}?text=${encodeURIComponent(mensagem)}`;
+      window.open(urlWhats, "_blank");
+      modal.style.display = "none";
+    });
+  </script>
+</body>
+</html>
