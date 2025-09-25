@@ -126,40 +126,29 @@ TOKENS_CACHE = {}
 @app.route("/auth", methods=["POST"])
 def auth():
     try:
-        data = request.get_json(force=True)
-        ra = data.get("ra")
-        senha = data.get("password")
+        if not request.is_json:
+            return jsonify({"success": False, "message": "Requisição não é JSON"}), 400
+
+        data = request.get_json(silent=True)
+        if not data:
+            return jsonify({"success": False, "message": "Corpo JSON vazio ou inválido"}), 400
+
+        ra, senha = data.get("ra"), data.get("password")
         if not ra or not senha:
             return jsonify({"success": False, "message": "RA e senha obrigatórios"}), 400
 
-        # endpoint real da SED (exemplo, você confirma depois)
-        url = "https://sed.educacao.sp.gov.br/credenciais/api/Login"
-        payload = {"username": ra, "password": senha}
-        headers = {
-            "Accept": "application/json",
-            "Content-Type": "application/json",
-            "Ocp-Apim-Subscription-Key": "2b03c1db3884488795f79c37c069381a"
-        }
-        r = requests.post(url, headers=headers, json=payload, timeout=20)
-
+        payload = {"realm": "edusp", "platform": "webclient", "id": ra, "password": senha}
+        r = requests.post(f"{API_BASE_URL}/registration/edusp",
+                          headers=default_headers(),
+                          json=payload, timeout=15)
         if r.status_code != 200:
-            logging.warning("auth failed: %s %s", r.status_code, r.text[:200])
             return jsonify({"success": False, "message": "Falha no login", "detail": r.text}), r.status_code
 
         j = r.json()
-        token = j.get("token") or j.get("jwt") or j.get("access_token")
-
-        if not token:
-            return jsonify({"success": False, "message": "Token não encontrado na resposta"}), 500
-
-        # guarda em cache
-        TOKENS_CACHE[ra] = {"token": token, "password": senha, "created_at": now_iso()}
-
-        return jsonify({"success": True, "auth_token": token})
+        return jsonify({"success": True, "auth_token": j.get("auth_token"), "nick": j.get("nick")})
     except Exception as e:
         logging.exception("auth error")
-        return jsonify({"success": False, "message": str(e)}), 500# ---------------------------- TASKS -------------------------------------------------------
-@app.route("/tasks", methods=["POST"])
+        return jsonify({"success": False, "message": str(e)}), 500@app.route("/tasks", methods=["POST"])
 def tasks():
     data = request.get_json()
     token = data.get("auth_token")
