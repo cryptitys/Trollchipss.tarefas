@@ -148,7 +148,9 @@ def auth():
         return jsonify({"success": True, "auth_token": j.get("auth_token"), "nick": j.get("nick")})
     except Exception as e:
         logging.exception("auth error")
-        return jsonify({"success": False, "message": str(e)}), 500@app.route("/tasks", methods=["POST"])
+        return jsonify({"success": False, "message": str(e)}), 500
+        
+        @app.route("/tasks", methods=["POST"])
 def tasks():
     data = request.get_json()
     token = data.get("auth_token")
