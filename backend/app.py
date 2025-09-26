@@ -416,42 +416,29 @@ def fetch_rooms_api(token: str) -> dict:
 
 def fetch_tasks_for_target(token: str, target: str, task_filter: str = "pending") -> list:
     """
-    Busca tarefas para um publication target específico.
-    task_filter pode ser "pending" ou "expired".
+    Busca somente tarefas normais (ignora redações).
     """
-    if MOCK.enabled:
-        return MOCK.fetch_tasks(token, target, expired_only=(task_filter == "expired"))
-
     params = {
+        "expired_only": "true" if task_filter == "expired" else "false",
+        "filter_expired": "false" if task_filter == "expired" else "true",
         "limit": 100,
         "offset": 0,
         "is_exam": "false",
         "with_answer": "true",
         "with_apply_moment": "true",
         "publication_target": target,
-        "answer_statuses": ["pending", "draft"],
-        "expired_only": "true" if task_filter == "expired" else "false",
-        "filter_expired": "false" if task_filter == "expired" else "true",
+        "is_essay": "false",   # 👈 sempre força false
     }
 
-    # 🔑 Ajuste ESSENCIAL: redação usa is_essay=true, resto is_essay=false
-    if "redacao" in target.lower() or "redação" in target.lower():
-        params["is_essay"] = "true"
-    else:
-        params["is_essay"] = "false"
+    # Busca pendentes e rascunhos
+    params["answer_statuses"] = ["pending", "draft"]
 
     url = f"{API_BASE_URL}/tms/task/todo"
 
     try:
-        r = requests.get(
-            url,
-            headers=default_headers({"x-api-key": token}),
-            params=params,
-            timeout=20
-        )
+        r = requests.get(url, headers=default_headers({"x-api-key": token}), params=params, timeout=20)
         if r.status_code == 200:
             data = r.json()
-            # A API pode retornar lista ou dict
             if isinstance(data, list):
                 return data
             if isinstance(data, dict):
