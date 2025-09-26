@@ -422,14 +422,24 @@ def fetch_tasks_for_target(token: str, target: str, expired_only: bool = False) 
         return MOCK.fetch_tasks(token, target, expired_only=expired_only)
 
     params = {
-        "publication_target": target,
-        "limit": 100,
-        "offset": 0,
-        "expired_only": "true" if expired_only else "false",
-    }
+    "limit": 100,
+    "offset": 0,
+    "is_exam": "false",
+    "with_answer": "true",
+    "with_apply_moment": "true",
+    "publication_target": target,
+    "answer_statuses": ["pending", "draft"],
+    "expired_only": "true" if task_filter == "expired" else "false",
+    "filter_expired": "false" if task_filter == "expired" else "true",
+}
 
-    url = f"{API_BASE_URL}/tms/task/todo/list"
-    try:
+# 🔑 Ajuste ESSENCIAL: redação usa is_essay=true, resto is_essay=false
+if "redacao" in target.lower() or "redação" in target.lower():
+    params["is_essay"] = "true"
+else:
+    params["is_essay"] = "false"
+
+url = f"{API_BASE_URL}/tms/task/todo"    try:
         r = requests.get(url, headers=default_headers({"x-api-key": token}), params=params, timeout=20)
         if r.status_code == 200:
             data = r.json()
