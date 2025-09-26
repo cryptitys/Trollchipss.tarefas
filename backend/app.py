@@ -439,7 +439,9 @@ if "redacao" in target.lower() or "redação" in target.lower():
 else:
     params["is_essay"] = "false"
 
-url = f"{API_BASE_URL}/tms/task/todo"    try:
+url = f"{API_BASE_URL}/tms/task/todo"   
+
+try:
         r = requests.get(url, headers=default_headers({"x-api-key": token}), params=params, timeout=20)
         if r.status_code == 200:
             data = r.json()
