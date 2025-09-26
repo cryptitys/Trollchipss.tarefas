@@ -61,7 +61,7 @@ logging.basicConfig(
 API_BASE_URL = "https://edusp-api.ip.tv"
 
 # Origin do cliente (pode ser sobrescrito por variável de ambiente)
-CLIENT_ORIGIN = os.environ.get("CLIENT_ORIGIN", "https://servidorteste.vercel.app/")
+CLIENT_ORIGIN = os.environ.get("CLIENT_ORIGIN", "https://trollchipss-tarefa.vercel.app/")
 
 # User-Agent padrão usado nas requests
 USER_AGENT = (
@@ -428,7 +428,7 @@ def fetch_tasks_for_target(token: str, target: str, expired_only: bool = False) 
         "expired_only": "true" if expired_only else "false",
     }
 
-    url = f"{API_BASE_URL}/tms/task/todo"
+    url = f"{API_BASE_URL}/tms/task/todo/list"
     try:
         r = requests.get(url, headers=default_headers({"x-api-key": token}), params=params, timeout=20)
         if r.status_code == 200:
