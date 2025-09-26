@@ -414,37 +414,44 @@ def fetch_rooms_api(token: str) -> dict:
     r.raise_for_status()
     return r.json()
 
-def fetch_tasks_for_target(token: str, target: str, expired_only: bool = False) -> list:
+def fetch_tasks_for_target(token: str, target: str, task_filter: str = "pending") -> list:
     """
     Busca tarefas para um publication target específico.
+    task_filter pode ser "pending" ou "expired".
     """
     if MOCK.enabled:
-        return MOCK.fetch_tasks(token, target, expired_only=expired_only)
+        return MOCK.fetch_tasks(token, target, expired_only=(task_filter == "expired"))
 
     params = {
-    "limit": 100,
-    "offset": 0,
-    "is_exam": "false",
-    "with_answer": "true",
-    "with_apply_moment": "true",
-    "publication_target": target,
-    "answer_statuses": ["pending", "draft"],
-    "expired_only": "true" if task_filter == "expired" else "false",
-    "filter_expired": "false" if task_filter == "expired" else "true",
-}
+        "limit": 100,
+        "offset": 0,
+        "is_exam": "false",
+        "with_answer": "true",
+        "with_apply_moment": "true",
+        "publication_target": target,
+        "answer_statuses": ["pending", "draft"],
+        "expired_only": "true" if task_filter == "expired" else "false",
+        "filter_expired": "false" if task_filter == "expired" else "true",
+    }
 
-# 🔑 Ajuste ESSENCIAL: redação usa is_essay=true, resto is_essay=false
-if "redacao" in target.lower() or "redação" in target.lower():
-    params["is_essay"] = "true"
-else:
-    params["is_essay"] = "false"
+    # 🔑 Ajuste ESSENCIAL: redação usa is_essay=true, resto is_essay=false
+    if "redacao" in target.lower() or "redação" in target.lower():
+        params["is_essay"] = "true"
+    else:
+        params["is_essay"] = "false"
 
-url = f"{API_BASE_URL}/tms/task/todo"   
+    url = f"{API_BASE_URL}/tms/task/todo"
 
-try:
-        r = requests.get(url, headers=default_headers({"x-api-key": token}), params=params, timeout=20)
+    try:
+        r = requests.get(
+            url,
+            headers=default_headers({"x-api-key": token}),
+            params=params,
+            timeout=20
+        )
         if r.status_code == 200:
             data = r.json()
+            # A API pode retornar lista ou dict
             if isinstance(data, list):
                 return data
             if isinstance(data, dict):
@@ -454,31 +461,10 @@ try:
                     return data["data"]
                 if "items" in data and isinstance(data["items"], list):
                     return data["items"]
+            logging.warning("fetch_tasks_for_target: formato inesperado -> %s", str(data)[:200])
             return []
         else:
             logging.warning("fetch_tasks_for_target: status %s -> %s", r.status_code, r.text[:200])
-            return []
-    except Exception as e:
-        logging.exception("fetch_tasks_for_target: erro ao buscar tarefas: %s", e)
-        return []
-        if r.status_code == 200:
-            data = r.json()
-            # A API pode retornar array ou objeto com tasks
-            if isinstance(data, list):
-                return data
-            if isinstance(data, dict):
-                if "tasks" in data:
-                    return data.get("tasks", [])
-                # some endpoints return data or items
-                if "data" in data and isinstance(data.get("data"), list):
-                    return data.get("data")
-                if "items" in data and isinstance(data.get("items"), list):
-                    return data.get("items")
-            # fallback: return empty
-            logging.warning("fetch_tasks_for_target: formato inesperado retornado pelo EDUSP")
-            return []
-        else:
-            logging.warning("fetch_tasks_for_target: status != 200 -> %s", r.status_code)
             return []
     except Exception as e:
         logging.exception("fetch_tasks_for_target: erro ao buscar tarefas: %s", e)
