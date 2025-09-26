@@ -415,26 +415,24 @@ def fetch_rooms_api(token: str) -> dict:
     return r.json()
 
 def fetch_tasks_for_target(token: str, target: str, task_filter: str = "pending") -> list:
+def fetch_tasks_for_target(token: str, target: str, expired_only: bool = False) -> list:
     """
-    Busca somente tarefas normais (ignora redações).
+    Busca tarefas para um publication target específico.
     """
     params = {
-        "expired_only": "true" if task_filter == "expired" else "false",
-        "filter_expired": "false" if task_filter == "expired" else "true",
         "limit": 100,
         "offset": 0,
         "is_exam": "false",
         "with_answer": "true",
         "with_apply_moment": "true",
         "publication_target": target,
-        "is_essay": "false",   # 👈 sempre força false
+        "answer_statuses": ["pending", "draft"],
+        "expired_only": "true" if expired_only else "false",
+        "filter_expired": "false" if expired_only else "true",
+        "is_essay": "false",  # só se for redação você troca pra true
     }
 
-    # Busca pendentes e rascunhos
-    params["answer_statuses"] = ["pending", "draft"]
-
     url = f"{API_BASE_URL}/tms/task/todo"
-
     try:
         r = requests.get(url, headers=default_headers({"x-api-key": token}), params=params, timeout=20)
         if r.status_code == 200:
@@ -448,7 +446,6 @@ def fetch_tasks_for_target(token: str, target: str, task_filter: str = "pending"
                     return data["data"]
                 if "items" in data and isinstance(data["items"], list):
                     return data["items"]
-            logging.warning("fetch_tasks_for_target: formato inesperado -> %s", str(data)[:200])
             return []
         else:
             logging.warning("fetch_tasks_for_target: status %s -> %s", r.status_code, r.text[:200])
