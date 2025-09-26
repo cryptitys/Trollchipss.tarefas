@@ -414,34 +414,41 @@ def fetch_rooms_api(token: str) -> dict:
     r.raise_for_status()
     return r.json()
 
-
 def fetch_tasks_for_target(token: str, target: str, expired_only: bool = False) -> list:
     """
     Busca tarefas para um publication target específico.
     """
-    logging.debug("fetch_tasks_for_target: target=%s expired_only=%s", target, expired_only)
     if MOCK.enabled:
         return MOCK.fetch_tasks(token, target, expired_only=expired_only)
 
     params = {
         "publication_target": target,
-        "limit": 500,
+        "limit": 100,
         "offset": 0,
-        "is_exam": "false",
-        "with_answer": "true",
-        "is_essay": "false",
-        "with_apply_moment": "true",
+        "expired_only": "true" if expired_only else "false",
     }
-    if expired_only:
-        params["expired_only"] = "true"
-        params["filter_expired"] = "false"
-    else:
-        params["expired_only"] = "false"
-        params["filter_expired"] = "true"
 
     url = f"{API_BASE_URL}/tms/task/todo"
     try:
         r = requests.get(url, headers=default_headers({"x-api-key": token}), params=params, timeout=20)
+        if r.status_code == 200:
+            data = r.json()
+            if isinstance(data, list):
+                return data
+            if isinstance(data, dict):
+                if "tasks" in data:
+                    return data["tasks"]
+                if "data" in data and isinstance(data["data"], list):
+                    return data["data"]
+                if "items" in data and isinstance(data["items"], list):
+                    return data["items"]
+            return []
+        else:
+            logging.warning("fetch_tasks_for_target: status %s -> %s", r.status_code, r.text[:200])
+            return []
+    except Exception as e:
+        logging.exception("fetch_tasks_for_target: erro ao buscar tarefas: %s", e)
+        return []
         if r.status_code == 200:
             data = r.json()
             # A API pode retornar array ou objeto com tasks
